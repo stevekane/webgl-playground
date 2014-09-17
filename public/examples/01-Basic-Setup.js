@@ -1,16 +1,12 @@
-var root       = document.getElementById("playground")
-var canvas     = document.createElement("canvas")
-var gl         = canvas.getContext("webgl")
-var bgColor    = new Float32Array([0,0,0,0])
-var log        = console.log.bind(console)
-var logShader  = function (gl, shader) { log(gl.getShaderInfoLog(shader)) }
-var logProgram = function (gl, program) { log(gl.getProgramInfoLog(program)) }
+var canvas = document.getElementById("playground")
+var gl     = canvas.getContext("webgl")
+var bgColor= new Float32Array([0,0,0,0])
 
 //fetch file by name and call "nodeback"
-function loadXhr (type, path, cb) {
-  var xhr     = new XMLHttpRequest
+function loadShader (path, cb) {
+  var xhr = new XMLHttpRequest
 
-  xhr.responseType = type
+  xhr.responseType = "string"
   xhr.onload       = function () { cb(null, xhr.response) }
   xhr.onerror      = function () { cb(new Error("Could not load " + path)) }
   xhr.open("GET", path, true)
@@ -18,8 +14,8 @@ function loadXhr (type, path, cb) {
 }
 
 //clear the webgl context
-function clearContext (gl, v4Color) {
-  gl.clearColor(v4Color[0], v4Color[1], v4Color[2], v4Color[3])
+function clearContext (gl) {
+  gl.clearColor(0.0, 0.0, 0.0, 1.0)
   gl.clear(gl.COLOR_BUFFER_BIT)
 }
 
@@ -42,19 +38,16 @@ function link (gl, vs, fs) {
   return program
 }
 
-function animate (gl) {
-  clearContext(gl, bgColor)
-  gl.drawArrays(gl.POINTS, 0, 1)
-  requestAnimationFrame(function () { animate(gl) }) 
-}
-
 /*
  * We want to create a wrapper for a loaded gl program
  * that includes pointers to all the uniforms and attributes
  * defined for this program.  This makes it more convenient
  * to change these values
  */
-function LoadedProgram (gl, vSrc, fSrc, vs, fs, program) {
+function LoadedProgram (gl, vSrc, fSrc) {
+  var vs            = compile(gl, gl.VERTEX_SHADER, vSrc)
+  var fs            = compile(gl, gl.FRAGMENT_SHADER, fSrc)
+  var program       = link(gl, vs, fs)
   var numAttributes = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES)
   var numUniforms   = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS)
   var lp = {
@@ -73,42 +66,52 @@ function LoadedProgram (gl, vSrc, fSrc, vs, fs, program) {
   var aName
   var uName
 
-  for (var i in numAttributes) {
-    aName = gl.getActiveAttrib(program, i).name
-
-    lp.attributes[aName] = gl.getAttribLocation(program, aName);
+  for (var i = 0; i < numAttributes; ++i) {
+    aName                = gl.getActiveAttrib(program, i).name
+    lp.attributes[aName] = gl.getAttribLocation(program, aName)
   }
 
-  for (var j in numUniforms) {
-    uName = gl.getActiveUniform(program, j).name
-
-    lp.uniforms[uName] = gl.getUniformLocation(program, uName);
+  for (var j = 0; j < numUniforms; ++j) {
+    uName              = gl.getActiveUniform(program, j).name
+    lp.uniforms[uName] = gl.getUniformLocation(program, uName)
   }
-    
+
   return lp 
 }
 
-loadXhr("string", "/shaders/01v.glsl", function (errV, vSrc) {
-  loadXhr("string", "/shaders/01f.glsl", function (errF, fSrc) {
-    var vs      = compile(gl, gl.VERTEX_SHADER, vSrc)
-    var fs      = compile(gl, gl.FRAGMENT_SHADER, fSrc)
-    var program = link(gl, vs, fs)
-    var aPosition
-    var uFragColor
-    var lp
+function initBuffer (gl, data, chunkSize, attribute) {
+  var buffer = gl.createBuffer()
 
-    gl.useProgram(program)
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW)
+  gl.vertexAttribPointer(attribute, chunkSize, gl.FLOAT, false, 0, 0)
+  gl.enableVertexAttribArray(attribute)
+  return buffer
+}
 
-    lp = LoadedProgram(gl, vSrc, fSrc, vs, fs, program)
-    log(lp)
-    //aPosition  = gl.getAttribLocation(program, 'aPosition')
-    //uFragColor = gl.getUniformLocation(program, 'uFragColor')
-    //gl.vertexAttrib2f(aPosition, 0.0, 0.0)
-    //gl.uniform4f(uFragColor, 1.0, 0.0, 0.0, 0.0)
+function makeAnimate (gl, count) {
+  return function animate () {
+    clearContext(gl)
+    gl.drawArrays(gl.POINTS, 0, count)
+    requestAnimationFrame(animate) 
+  }
+}
 
-    //animate(gl)
+loadShader("/shaders/01v.glsl", function (errV, vSrc) {
+  loadShader("/shaders/01f.glsl", function (errF, fSrc) {
+    var lp         = LoadedProgram(gl, vSrc, fSrc)
+    var positions  = new Float32Array([
+      -1.0, -1.0,
+      -1.0,  1.0, 
+       1.0, -1.0,
+       1.0,  1.0,
+       0.0,  0.0
+    ])
+    var count      = positions.length / 2
+    
+    gl.useProgram(lp.program)
+    initBuffer(gl, positions, 2, lp.attributes.aPosition)
+    gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
+    requestAnimationFrame(makeAnimate(gl, count))
   })
 })
-
-canvas.id = "board"
-root.appendChild(canvas)
