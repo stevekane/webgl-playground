@@ -1,0 +1,28 @@
+{
+  "name": "webgl-playground",
+  "version": "0.0.1",
+  "description": "This is a set of examples to teach webgl to myself and any interested viewer",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/stevekane/webgl-playground"
+  },
+  "keywords": [
+    "webgl",
+    "playground",
+    "graphics"
+  ],
+  "author": "Steve Kane",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stevekane/webgl-playground/issues"
+  },
+  "homepage": "https://github.com/stevekane/webgl-playground",
+  "dependencies": {
+    "express": "^4.9.0",
+    "jade": "^1.6.0"
+  }
+}

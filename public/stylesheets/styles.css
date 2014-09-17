@@ -1,0 +1,17 @@
+body {
+  width: 100%;
+  background: black;
+}
+
+#playground {
+  width: 400px;
+  height: 400px;
+  margin: 0px auto;
+  border: 4px solid blue;
+  border-radius: 10px;
+}
+
+#playground canvas {
+  width: 100%;
+  height: 100%;
+}
