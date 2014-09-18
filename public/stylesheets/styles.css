@@ -1,4 +1,8 @@
+#stats {
+  z-index: 10;
+}
+
 #playground {
+  z-index: 1;
   margin: 0px auto;
-  width: 200px;
 }
