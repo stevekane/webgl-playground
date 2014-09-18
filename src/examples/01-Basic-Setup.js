@@ -9,6 +9,7 @@ var loadShader    = loaders.loadShader
 var updateBuffer  = utils.updateBuffer
 var clearContext  = utils.clearContext
 var randBound     = random.randBound
+var ticker        = fps({every: 100})
 var canvas        = document.getElementById("playground")
 var stats         = document.getElementById("stats")
 var gl            = canvas.getContext("webgl")
@@ -16,7 +17,6 @@ var shaders       = {
   vertex:   "/shaders/01v.glsl",
   fragment: "/shaders/01f.glsl"
 }
-var ticker        = fps({every: 100})
 
 function updatePhysics (entities) {
   for (var i = 0, len = entities.length; i < len ;i++) {
@@ -42,7 +42,7 @@ function makeAnimate (gl, lp, buffers, positions) {
 
 //setup fps monitoring
 ticker.on("data", function (framerate) {
-  stats.innerHTML = String(framerate)
+  stats.innerHTML = "fps: " + String(framerate | 0)
 })
 
 async.parallel({
