@@ -22,9 +22,6 @@ emitters.updateEmitter = function (time, e) {
     particle.position[1] = e.position[1]
     particle.velocity[0] = e.speed * (e.direction[0] + randBound(-1 * e.spread, e.spread))
     particle.velocity[1] = e.speed * (e.direction[1] + randBound(-1 * e.spread, e.spread))
-    //particle.velocity[0] = e.speed * (e.direction[0])
-    //particle.velocity[1] = e.speed * (e.direction[1])
-
     e.nextFireTime += e.rate
   }
 }

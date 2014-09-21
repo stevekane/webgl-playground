@@ -74,8 +74,12 @@ async.parallel({
   fragment: function (cb) { loadShader("/shaders/01f.glsl", cb) }
 }, function (err, shaders) {
   var lp           = LoadedProgram(gl, shaders.vertex, shaders.fragment)
-  var sceneGraph   = Emitter(300, 2000, 10, .0009, .4, 0, 0, 0, 1) 
-
+  var sceneGraph   = {
+    children: [
+      Emitter(300, 2000, 10, .0009, .4, 0, 0, 1, 0),
+      Emitter(300, 2000, 10, .0009, .4, 0.5, 0.5, 0, 1)
+    ]
+  }
   gl.useProgram(lp.program)
   gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
   requestAnimationFrame(makeAnimate(gl, lp, sceneGraph))
