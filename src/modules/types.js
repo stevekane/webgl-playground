@@ -1,7 +1,9 @@
-var uuid  = require("node-uuid")
-var vec2  = require("../modules/vec2")
-var Vec2  = vec2.Vec2
-var types = {}
+var prodash = require("prodash")
+var uuid    = require("node-uuid")
+var Node    = prodash.graph.Node
+var vec2    = require("../modules/vec2")
+var Vec2    = vec2.Vec2
+var types   = {}
 
 //given src and type, compile and return shader
 function compile (gl, shaderType, src) {
@@ -66,7 +68,7 @@ types.LoadedProgram = function (gl, vSrc, fSrc) {
 }
 
 types.Particle = function (lifespan, px, py, vx, vy, ax, ay) {
-  return {
+  return Node({
     id:           uuid.v4(),
     position:     Vec2(px, py),
     velocity:     Vec2(vx, vy),
@@ -75,7 +77,7 @@ types.Particle = function (lifespan, px, py, vx, vy, ax, ay) {
     timeToDie:    0,
     lifespan:     lifespan,
     living:       false
-  }   
+  }) 
 }
 
 types.Emitter = function (count, lifespan, rate, speed, spread, px, py, dx, dy) {
@@ -85,7 +87,7 @@ types.Emitter = function (count, lifespan, rate, speed, spread, px, py, dx, dy) 
     particles.push(types.Particle(lifespan, px, py, 0, 0, 0, -0.0000009))
   }
 
-  return {
+  return Node({
     id:           uuid.v4(),
     emitter:      true,
     rate:         rate, 
@@ -97,9 +99,8 @@ types.Emitter = function (count, lifespan, rate, speed, spread, px, py, dx, dy) 
     acceleration: Vec2(0, 0),
     direction:    Vec2(dx, dy),
     renderable:   false,
-    living:       true,
-    children:     particles
-  } 
+    living:       true
+  }, particles)
 }
 
 module.exports = types
