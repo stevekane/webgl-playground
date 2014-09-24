@@ -25,7 +25,7 @@ var updateEmitter     = emitters.updateEmitter
 var killTheOld        = lifetime.killTheOld
 var flattenSceneGraph = rendering.flattenSceneGraph
 var walkAndDo         = rendering.walkAndDo
-var ticker            = fps({every: 100})
+var ticker            = fps({every: 16})
 var canvas            = document.getElementById("playground")
 var stats             = document.getElementById("stats")
 var gl                = canvas.getContext("webgl")
@@ -76,8 +76,10 @@ async.parallel({
   var lp           = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var sceneGraph   = {
     children: [
-      Emitter(300, 2000, 10, .0009, .4, 0, 0, 1, 0),
-      Emitter(300, 2000, 10, .0009, .4, 0.5, 0.5, 0, 1)
+      Emitter(100, 2000, 10, .0009, .4, 0, 0, 1, 0),
+      Emitter(100, 2000, 10, .0009, .4, 0.5, 0.5, 0, 1),
+      Emitter(100, 2000, 10, .0009, .4, -0.5, -0.5, 0.6, 0),
+      Emitter(100, 2000, 10, .0009, .4, -0.8, 0.5, -0.4, -0.2)
     ]
   }
   gl.useProgram(lp.program)
