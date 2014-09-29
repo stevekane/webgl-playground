@@ -1,5 +1,6 @@
 var test            = require("tape")
 var mod             = require("../graph")
+var Node            = mod.Node
 var Graph           = mod.Graph
 var attachRootNode  = mod.attachRootNode
 var attachChildNode = mod.attachChildNode
@@ -10,6 +11,15 @@ test("Graph", function (t) {
   t.plan(2)
   t.same(g.nodes, {})
   t.same(g.rootNodeIds, [])
+})
+
+test("Node", function (t) {
+  var n = Node({id: 1})
+
+  t.plan(3)
+  t.same(n.parentId, null)
+  t.same(n.childIds, [])
+  t.same(n.id, 1)
 })
 
 test('addRootNode', function (t) {
@@ -33,14 +43,14 @@ test("attachChildNode", function (t) {
   t.same(g.nodes[1].childIds[0], 2)
 })
 
-test('reduce', function (t) {
+test('Graph.__reduce', function (t) {
   var g  = Graph()
   var n1 = {id: 1, name: "Steve"}
   var n2 = {id: 2, name: "Juanita"}
   var n3 = {id: 3, name: "Tommy"}
   var n4 = {id: 4, name: "Murdoch"}
   var redFn = function (names, node) {
-    names.push(node.value.name) 
+    names.push(node.name) 
     return names
   }
   var names = []
