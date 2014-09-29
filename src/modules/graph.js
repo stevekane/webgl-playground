@@ -36,18 +36,14 @@ var nodeReduce = function (redFn, nodeId, accum, graph) {
 }
 
 //Graph -> Object -> Graph
-var attachRootNode = function (graph, obj) {
-  var node = Node(obj)
-
+var attachRootNode = function (graph, node) {
   graph.nodes[node.id] = node
   graph.rootNodeIds.push(node.id)  
   return graph
 }
 
 //Graph -> Node -> Node -> Graph
-var attachChildNode = function (graph, parentId, obj) {
-  var node = Node(obj)
-
+var attachChildNode = function (graph, parentId, node) {
   graph.nodes[node.id]          = node
   graph.nodes[node.id].parentId = parentId
   graph.nodes[parentId].childIds.push(node.id)

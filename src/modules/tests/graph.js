@@ -6,7 +6,7 @@ var attachRootNode  = mod.attachRootNode
 var attachChildNode = mod.attachChildNode
 
 test("Graph", function (t) {
-  var g = Graph([{id: 1}])
+  var g = Graph()
 
   t.plan(2)
   t.same(g.nodes, {})
@@ -24,7 +24,7 @@ test("Node", function (t) {
 
 test('addRootNode', function (t) {
   var g = Graph()
-  var n = {id: 1}
+  var n = Node({id: 1})
 
   attachRootNode(g, n)
   t.plan(2)
@@ -34,8 +34,8 @@ test('addRootNode', function (t) {
 
 test("attachChildNode", function (t) {
   var g  = Graph()
-  var n1 = {id: 1}
-  var n2 = {id: 2}
+  var n1 = Node({id: 1})
+  var n2 = Node({id: 2})
 
   attachRootNode(g, n1)
   attachChildNode(g, n1.id, n2)
@@ -45,10 +45,10 @@ test("attachChildNode", function (t) {
 
 test('Graph.__reduce', function (t) {
   var g  = Graph()
-  var n1 = {id: 1, name: "Steve"}
-  var n2 = {id: 2, name: "Juanita"}
-  var n3 = {id: 3, name: "Tommy"}
-  var n4 = {id: 4, name: "Murdoch"}
+  var n1 = Node({id: 1, name: "Steve"})
+  var n2 = Node({id: 2, name: "Juanita"})
+  var n3 = Node({id: 3, name: "Tommy"})
+  var n4 = Node({id: 4, name: "Murdoch"})
   var redFn = function (names, node) {
     names.push(node.name) 
     return names
