@@ -1,4 +1,5 @@
 var prodash   = require("prodash")
+var uuid      = require("node-uuid")
 var transduce = prodash.transducers.transduce
 var filtering = prodash.transducers.filtering
 var cons      = prodash.transducers.cons
@@ -7,21 +8,23 @@ var curry     = prodash.functions.curry
 var remove    = prodash.array.remove
 var graph     = {}
 
-var Graph = function () {
-  if (!(this instanceof Graph)) return new Graph
-  this.nodes       = {}
-  this.rootNodeIds = []
-}
-
 var Node = function (hash) {
   if (!(this instanceof Node)) return new Node(hash) 
-  if (!hash.id) throw new Error("Must provide id property in hash")
 
   extend(this, hash)
+  this.id       = this.id || uuid.v4()
   this.parentId = this.parentId || null
   this.childIds = this.childIds || []
 }
 
+var Graph = function (rootNode) {
+  if (!(this instanceof Graph)) return new Graph
+  var rootNode = rootNode || Node({ id: uuid.v4() })
+
+  this.nodes              = {}
+  this.rootNodeId         = rootNode.id
+  this.nodes[rootNode.id] = rootNode
+}
 
 //used internally by graph.__reduce to support iteration
 var nodeReduce = function (redFn, nodeId, accum, graph) {
@@ -35,35 +38,22 @@ var nodeReduce = function (redFn, nodeId, accum, graph) {
   return accum
 }
 
-//Graph -> Object -> Graph
-var attachRootNode = function (graph, node) {
-  graph.nodes[node.id] = node
-  graph.rootNodeIds.push(node.id)  
-  return graph
-}
+//Graph -> String -> Node -> Void
+var attachById = curry(function (graph, parentId, node) {
+  if(!graph.nodes[parentId]) throw new Error(parentId + " not found in graph")
 
-//Graph -> Node -> Node -> Graph
-var attachChildNode = function (graph, parentId, node) {
   graph.nodes[node.id]          = node
   graph.nodes[node.id].parentId = parentId
   graph.nodes[parentId].childIds.push(node.id)
-  return graph
-}
+})
 
 Graph.prototype.__reduce = function (redFn, accum, graph) {
-  var rootNodeIds = graph.rootNodeIds
-
-  for (var i = 0, len = graph.rootNodeIds.length; i < len; ++i) {
-    accum = nodeReduce(redFn, graph.rootNodeIds[i], accum, graph)
-  }
-  return accum
+  return nodeReduce(redFn, graph.rootNodeId, accum, graph)
 }
 
 Graph.prototype.__empty = function () { return new Graph }
 
-graph.Node            = Node
-graph.Graph           = Graph
-graph.attachRootNode  = attachRootNode
-graph.attachChildNode = attachChildNode
-
-module.exports = graph
+graph.Node       = Node
+graph.Graph      = Graph
+graph.attachById = attachById
+module.exports   = graph
