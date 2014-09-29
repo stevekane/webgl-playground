@@ -35,21 +35,21 @@ test("attachChildNode", function (t) {
 
 test('reduce', function (t) {
   var g  = Graph()
-  var n1 = {id: 1}
-  var n2 = {id: 2}
-  var n3 = {id: 3}
-  var n4 = {id: 4}
-  var redFn = function (nodeIds, node) {
-    nodeIds.push(node.id) 
-    return nodeIds
+  var n1 = {id: 1, name: "Steve"}
+  var n2 = {id: 2, name: "Juanita"}
+  var n3 = {id: 3, name: "Tommy"}
+  var n4 = {id: 4, name: "Murdoch"}
+  var redFn = function (names, node) {
+    names.push(node.value.name) 
+    return names
   }
-  var nodeIds = []
+  var names = []
 
   attachRootNode(g, n1)
   attachChildNode(g, n1.id, n2)
   attachChildNode(g, n1.id, n3)
   attachChildNode(g, n2.id, n4)
-  nodeIds = g.__reduce(redFn, [], g)
+  names = g.__reduce(redFn, [], g)
   t.plan(1)
-  t.same([1,2,4,3], nodeIds)
+  t.same(["Steve", "Juanita", "Murdoch", "Tommy"], names)
 })
