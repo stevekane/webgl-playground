@@ -19,7 +19,6 @@ var findFirstDead = find(function (e) { return !e.living })
 emitters.updateEmitter = function (time, e) {
   var particle 
 
-  if (!e.emitter) return
   if (time > e.nextFireTime) {
     particle             = findFirstDead(e.children)
     particle.timeToDie   = time + particle.lifespan

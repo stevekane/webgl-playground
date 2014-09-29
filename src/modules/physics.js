@@ -13,7 +13,6 @@ physics.updateVelocity = function (dT, e) {
 }
 
 physics.updatePhysics = function (dT, e) {
-  if (e.velocity === undefined) return
   physics.updateVelocity(dT, e)
   physics.updatePosition(dT, e)
   return e

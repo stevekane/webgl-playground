@@ -31,6 +31,6 @@
     "gl-mat4": "^1.0.0",
     "node-uuid": "^1.4.1",
     "tape": "^3.0.0",
-    "prodash": "0.0.7"
+    "prodash": "git://github.com/stevekane/prodash"
   }
 }

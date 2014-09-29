@@ -8,7 +8,6 @@ var random            = require("../modules/random")
 var physics           = require("../modules/physics")
 var lifetime          = require("../modules/lifetime")
 var emitters          = require("../modules/emitters")
-var rendering         = require("../modules/rendering")
 var filtering         = prodash.transducers.filtering
 var mapping           = prodash.transducers.mapping
 var curry             = prodash.functions.curry
@@ -18,7 +17,13 @@ var reduceG           = prodash.graph.reduce
 var reduceA           = prodash.array.reduce
 var consA             = prodash.array.cons
 var forEachA          = prodash.array.forEach
+var flattenA          = prodash.array.flatten
+var filterA           = prodash.array.filter
+var mapA              = prodash.array.map
+var mapcatA           = prodash.array.mapcat
+var has               = prodash.object.has
 var Node              = prodash.graph.Node
+var flattenG          = prodash.graph.flatten
 var LoadedProgram     = types.LoadedProgram
 var Particle          = types.Particle
 var Emitter           = types.Emitter
@@ -29,7 +34,6 @@ var randBound         = random.randBound
 var updatePhysics     = physics.updatePhysics
 var updateEmitter     = emitters.updateEmitter
 var killTheOld        = lifetime.killTheOld
-var walkAndDo         = rendering.walkAndDo
 var ticker            = fps({every: 16})
 var canvas            = document.getElementById("playground")
 var stats             = document.getElementById("stats")
@@ -39,34 +43,13 @@ var shaders           = {
   fragment: "/shaders/01f.glsl"
 }
 
-//TODO: should be a utility function in prodash.object
-var has = curry(function (props, e) {
-  var res = true
+var hasLifeSpan        = filtering(has(["lifespan"]))
+var isEmitter          = filtering(function (n) { return !!n.emitter })
+var hasPhysics         = filtering(has(["position", "velocity", "acceleration"]))
+var isLiving           = filtering(function (n) { return !!n.living })
+var getPosition        = mapping(function (n) { return n.position })
+var getLivingPositions = mapcatA(compose([isLiving, getPosition]))
 
-  for (var i = 0; i < props.length; ++i) {
-    res = res && e.hasOwnProperty(props[i])
-  }
-  return res
-})
-
-//TODO: should be a utility fuction in prodash.array
-var flatten = function (listOfLists) {
-  var res = [] 
-
-  for (var i = 0; i < listOfLists.length; ++i) {
-    for (var j = 0; j < listOfLists[i].length; ++j) {
-      res.push(listOfLists[i][j])
-    } 
-  }
-  return res
-}
-
-var hasLifeSpan = filtering(has(["lifespan"]))
-var isEmitter   = filtering(has(["emitter"]))
-var hasPhysics  = filtering(has(["position", "velocity", "acceleration"]))
-var groupGraphBy = function (predFn, graph) {
-  return reduceG(predFn(consA), [], graph)
-}
 
 function makeUpdate (groups) {
   var oldTime = performance.now()
@@ -79,23 +62,18 @@ function makeUpdate (groups) {
     dT      = newTime - oldTime
 
     //TODO: optimize by creating functions in makeUpdate
-    forEachA(function (e) { updateEmitter(newTime, e) }, groups.emitters)
-    forEachA(function (e) { killTheOld(newTime, e) }, groups.lifespans)
-    forEachA(function (e) { updatePhysics(dT, e) }, groups.physics)
+    forEachA(partial(updateEmitter, newTime), groups.emitters)
+    forEachA(partial(killTheOld, newTime), groups.lifespans)
+    forEachA(partial(updatePhysics, dT), groups.physics)
   }
 }
-
-//TODO: wtf steven wtf...
-var getLivingPositions = reduceA(compose([
-  filtering(function (e) { return !!e.living }),
-  mapping(function (e) { return [e.position[0], e.position[1]] })
-])(consA), []) 
 
 //TODO: This should be groups.renderable and not physics probably
 function makeAnimate (gl, lp, groups) {
   return function animate () {
-    var positions = new Float32Array(flatten(getLivingPositions(groups.physics)))
+    var positions = new Float32Array(getLivingPositions(groups.physics))
 
+    window.positions = positions
     ticker.tick()
     clearContext(gl)
     updateBuffer(gl, 2, lp.attributes.aPosition, lp.buffers.aPosition, positions)
@@ -107,9 +85,9 @@ function makeAnimate (gl, lp, groups) {
 //TODO: There probably should be a renderable group for animate frame iteration
 function cacheGroups (sceneGraph) {
   return {
-    lifespans: groupGraphBy(hasLifeSpan, sceneGraph),
-    emitters:  groupGraphBy(isEmitter, sceneGraph),
-    physics:   groupGraphBy(hasPhysics, sceneGraph)
+    lifespans: flattenG(hasLifeSpan, sceneGraph),
+    emitters:  flattenG(isEmitter, sceneGraph),
+    physics:   flattenG(hasPhysics, sceneGraph)
   }  
 }
 
@@ -124,12 +102,10 @@ async.parallel({
 }, function (err, shaders) {
   var lp           = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var sceneGraph   = Node({}, [
-      Emitter(100, 2000, 10, .0009, .4, 0, 0, 1, 0)
+      Emitter(100, 1000, 1000, .0009, .4, 0, 0, 1, 0)
   ])
   var groups       = cacheGroups(sceneGraph)
-  var positions    = flatten(getLivingPositions(groups.physics))
 
-  window.positions = positions
   window.graph     = sceneGraph
   window.groups    = groups
   gl.useProgram(lp.program)
