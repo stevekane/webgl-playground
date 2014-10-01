@@ -65,8 +65,6 @@ var forEachNode = function (fn, nodeId, graph) {
 
 var updateGraph = function (fn, graph) {
   forEachNode(fn, graph.rootNodeId, graph)
-  forEachNode(fn, graph.rootNodeId, graph)
-  forEachNode(fn, graph.rootNodeId, graph)
 }
 
 function makeUpdate (sceneGraph) {
