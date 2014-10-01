@@ -50,56 +50,40 @@ ticker.on("data", function (val) {
   stats.innerHTML = val | 0
 })
 
-var hasPhysics = function (node) { 
-  return !!node.position && !!node.velocity && !!node.acceleration 
-}
+//(World -> Node) -> String -> World -> Void
+var forEachNode = function (fn, nodeId, world) {
+  var node = world.graph.nodes[nodeId]
 
-//TODO temporary def here
-var forEachNode = function (fn, nodeId, graph) {
-  var node = graph.nodes[nodeId]
-
-  fn(graph, node)
+  fn(world, node)
   for (var i = 0; i < node.childIds.length; ++i) {
-    forEachNode(fn, node.childIds[i], graph)
+    forEachNode(fn, node.childIds[i], world)
   }
 }
 
-var updateGraph = function (fn, graph) {
-  forEachNode(fn, graph.rootNodeId, graph)
+//(World -> Node) -> World -> Void
+var updateEntities = function (fn, world) {
+  forEachNode(fn, world.graph.rootNodeId, world)
 }
 
-function makeUpdate (sceneGraph) {
-  var oldTime = performance.now()
-  var newTime = oldTime
-  var dT
+function makeUpdate (world) {
+  world.times.oldTime = performance.now()
+  world.times.newTime = world.times.oldTime
 
   return function update () {
-    oldTime = newTime
-    newTime = performance.now()
-    dT      = newTime - oldTime
-    var runLifetime = function (graph, node) {
-      if (!node.living || !node.lifespan) return
-      killTheOld(newTime, graph, node)
-    }
-    var runPhysics = function (graph, node) {
-      if (!node.living || !hasPhysics(node)) return
-      updatePhysics(dT, graph, node)
-    }
-    var runEmitters = function (graph, node) {
-      if(!node.living || !node.emitter ) return
-      updateEmitter(newTime, graph, node)
-    }
+    world.times.oldTime = world.times.newTime
+    world.times.newTime = performance.now()
+    world.times.dT      = world.times.newTime - world.times.oldTime
 
-    updateGraph(runLifetime, sceneGraph)
-    updateGraph(runPhysics, sceneGraph)
-    updateGraph(runEmitters, sceneGraph)
+    updateEntities(killTheOld, world)
+    updateEntities(updatePhysics, world)
+    updateEntities(updateEmitter, world)
   }
 }
 
-function makeAnimate (gl, lp, sceneGraph) {
+function makeAnimate (gl, world) {
   var rawPositions = []
   var rawSize      = []
-  var buildBuffers  = function (graph, node) {
+  var buildBuffers  = function (world, node) {
     if (node.living && node.renderable) {
       rawPositions.push(node.position[0]) 
       rawPositions.push(node.position[1]) 
@@ -108,17 +92,19 @@ function makeAnimate (gl, lp, sceneGraph) {
   }
   var positions 
   var sizes
+  //temporary... should refactor
+  var lp = world.programs.particle
 
   return function animate () {
     rawPositions = []
     rawSizes     = []
-    updateGraph(buildBuffers, sceneGraph)
+    updateEntities(buildBuffers, world)
     positions = new Float32Array(rawPositions)
     sizes     = new Float32Array(rawSizes)
 
     ticker.tick()
     clearContext(gl)
-    gl.useProgram(lp.program)
+    gl.useProgram(world.programs.particle.program)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
     updateBuffer(gl, 2, lp.attributes.aPosition, lp.buffers.aPosition, positions)
     updateBuffer(gl, 1, lp.attributes.aSize, lp.buffers.aSize, sizes)
@@ -131,23 +117,36 @@ async.parallel({
   vertex:   partial(loadShader, "/shaders/01v.glsl"),
   fragment: partial(loadShader, "/shaders/01f.glsl")
 }, function (err, shaders) {
-  var lp         = LoadedProgram(gl, shaders.vertex, shaders.fragment)
-  var sceneGraph = Graph()
-  var e1         = Emitter(2000, 10, .0008, .4, -1, 1, 1, -1)
-  var e2         = Emitter(2000, 10, .0008, .4, 1, 1, -1, -1)
-  var e3         = Emitter(2000, 10, .0008, .4, -1, -1, 1, 1)
-  var e4         = Emitter(2000, 10, .0008, .4, 1, -1, -1, 1)
-
-  attachById(sceneGraph, sceneGraph.rootNodeId, e1)
-  attachById(sceneGraph, sceneGraph.rootNodeId, e2)
-  attachById(sceneGraph, sceneGraph.rootNodeId, e3)
-  attachById(sceneGraph, sceneGraph.rootNodeId, e4)
-  for (var i = 0; i < 300; ++i) {
-    attachById(sceneGraph, e1.id, Particle(1000, 0, 0))
-    attachById(sceneGraph, e2.id, Particle(1000, 0, 0))
-    attachById(sceneGraph, e3.id, Particle(1000, 0, 0))
-    attachById(sceneGraph, e4.id, Particle(1000, 0, 0))
+  var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
+  var world           = {
+    times: {
+      dT:      0,
+      newTime: 0,
+      oldTime: 0
+    },
+    programs: {
+      particle: particleProgram
+    },
+    camera: {
+    
+    },
+    graph: Graph()
   }
-  setInterval(makeUpdate(sceneGraph), 25)
-  requestAnimationFrame(makeAnimate(gl, lp, sceneGraph))
+  var e1 = Emitter(2000, 10, .0008, .4, -1, 1, 1, -1)
+  var e2 = Emitter(2000, 10, .0008, .4, 1, 1, -1, -1)
+  var e3 = Emitter(2000, 10, .0008, .4, -1, -1, 1, 1)
+  var e4 = Emitter(2000, 10, .0008, .4, 1, -1, -1, 1)
+
+  attachById(world.graph, world.graph.rootNodeId, e1)
+  attachById(world.graph, world.graph.rootNodeId, e2)
+  attachById(world.graph, world.graph.rootNodeId, e3)
+  attachById(world.graph, world.graph.rootNodeId, e4)
+  for (var i = 0; i < 300; ++i) {
+    attachById(world.graph, e1.id, Particle(1000, 0, 0))
+    attachById(world.graph, e2.id, Particle(1000, 0, 0))
+    attachById(world.graph, e3.id, Particle(1000, 0, 0))
+    attachById(world.graph, e4.id, Particle(1000, 0, 0))
+  }
+  setInterval(makeUpdate(world), 25)
+  requestAnimationFrame(makeAnimate(gl, world))
 })

@@ -26,11 +26,14 @@ var findFirstDead = function (graph, childIds) {
   and a time to die
   N.B. The velocity is affected by both the speed and the spread
 */
-emitters.updateEmitter = function (time, graph, e) {
+emitters.updateEmitter = function (world, e) {
+  var time = world.times.newTime
   var particle 
 
+  if (!e.emitter) return
+  if (!e.living)  return
   if (time > e.nextFireTime) {
-    particle             = findFirstDead(graph, e.childIds)
+    particle             = findFirstDead(world.graph, e.childIds)
     particle.timeToDie   = time + particle.lifespan
     particle.living      = true
     particle.size        = randBound(1, 10) | 0

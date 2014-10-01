@@ -2,6 +2,9 @@ var fns     = require("prodash")
 var curry   = fns.functions.curry
 var physics = {}
 
+var hasPhysics = function (node) { 
+  return !!node.position && !!node.velocity && !!node.acceleration 
+}
 physics.updatePosition = function (dT, e) {
   e.position[0] = e.position[0] + dT * e.velocity[0]
   e.position[1] = e.position[1] + dT * e.velocity[1]
@@ -14,9 +17,11 @@ physics.updateVelocity = function (dT, e) {
   return e
 }
 
-physics.updatePhysics = function (dT, graph, e) {
-  physics.updateVelocity(dT, e)
-  physics.updatePosition(dT, e)
+physics.updatePhysics = function (world, e) {
+  if (!hasPhysics(e)) return
+  if (!e.living)      return
+  physics.updateVelocity(world.times.dT, e)
+  physics.updatePosition(world.times.dT, e)
   return e
 }
 
