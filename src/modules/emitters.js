@@ -33,6 +33,7 @@ emitters.updateEmitter = function (time, graph, e) {
     particle             = findFirstDead(graph, e.childIds)
     particle.timeToDie   = time + particle.lifespan
     particle.living      = true
+    particle.size        = randBound(1, 10) | 0
     particle.position[0] = e.position[0]
     particle.position[1] = e.position[1]
     particle.velocity[0] = scaleAndSpread(e.speed, e.spread, e.direction[0])

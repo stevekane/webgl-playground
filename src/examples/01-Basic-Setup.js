@@ -1,6 +1,7 @@
 var prodash           = require("prodash")
 var async             = require("async")
 var fps               = require("fps")
+var mat4              = require("gl-mat4")
 var ticker            = fps({every: 10})
 var graph             = require("../modules/graph")
 var types             = require("../modules/types")
@@ -97,22 +98,30 @@ function makeUpdate (sceneGraph) {
 
 function makeAnimate (gl, lp, sceneGraph) {
   var rawPositions = []
-  var addPosition  = function (graph, node) {
-    if (node.living && hasKey("position", node)) {
+  var rawSize      = []
+  var buildBuffers  = function (graph, node) {
+    if (node.living && node.renderable) {
       rawPositions.push(node.position[0]) 
       rawPositions.push(node.position[1]) 
+      rawSizes.push(node.size) 
     }
   }
   var positions 
+  var sizes
 
   return function animate () {
     rawPositions = []
-    updateGraph(addPosition, sceneGraph)
+    rawSizes     = []
+    updateGraph(buildBuffers, sceneGraph)
     positions = new Float32Array(rawPositions)
+    sizes     = new Float32Array(rawSizes)
 
     ticker.tick()
     clearContext(gl)
+    gl.useProgram(lp.program)
+    gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
     updateBuffer(gl, 2, lp.attributes.aPosition, lp.buffers.aPosition, positions)
+    updateBuffer(gl, 1, lp.attributes.aSize, lp.buffers.aSize, sizes)
     gl.drawArrays(gl.POINTS, 0, positions.length / 2)
     requestAnimationFrame(animate) 
   }
@@ -124,10 +133,10 @@ async.parallel({
 }, function (err, shaders) {
   var lp         = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var sceneGraph = Graph()
-  var e1         = Emitter(1000, 10, .0002, .4, -1, 1, 1, -1)
-  var e2         = Emitter(1000, 10, .0002, .4, 1, 1, -1, -1)
-  var e3         = Emitter(1000, 10, .0002, .4, -1, -1, 1, 1)
-  var e4         = Emitter(1000, 10, .0002, .4, 1, -1, -1, 1)
+  var e1         = Emitter(2000, 10, .0008, .4, -1, 1, 1, -1)
+  var e2         = Emitter(2000, 10, .0008, .4, 1, 1, -1, -1)
+  var e3         = Emitter(2000, 10, .0008, .4, -1, -1, 1, 1)
+  var e4         = Emitter(2000, 10, .0008, .4, 1, -1, -1, 1)
 
   attachById(sceneGraph, sceneGraph.rootNodeId, e1)
   attachById(sceneGraph, sceneGraph.rootNodeId, e2)
@@ -139,8 +148,6 @@ async.parallel({
     attachById(sceneGraph, e3.id, Particle(1000, 0, 0))
     attachById(sceneGraph, e4.id, Particle(1000, 0, 0))
   }
-  gl.useProgram(lp.program)
-  gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
   setInterval(makeUpdate(sceneGraph), 25)
   requestAnimationFrame(makeAnimate(gl, lp, sceneGraph))
 })

@@ -71,8 +71,9 @@ types.Particle = function (lifespan, px, py) {
     id:           uuid.v4(),
     position:     Vec2(px, py),
     velocity:     Vec2(0, 0),
-    acceleration: Vec2(0, -0.00000009),
+    acceleration: Vec2(0, -0.0000015),
     renderable:   true,
+    size:         4.0,
     timeToDie:    0,
     lifespan:     lifespan,
     living:       false
