@@ -123,16 +123,24 @@ async.parallel({
   var e3 = Emitter(2000, 10, .0008, .4, -1, -1, 1, 1)
   var e4 = Emitter(2000, 10, .0008, .4, 1, -1, -1, 1)
 
-  attachById(world.graph, world.graph.rootNodeId, e1)
-  attachById(world.graph, world.graph.rootNodeId, e2)
-  attachById(world.graph, world.graph.rootNodeId, e3)
-  attachById(world.graph, world.graph.rootNodeId, e4)
-  for (var i = 0; i < 300; ++i) {
-    attachById(world.graph, e1.id, Particle(1000, 0, 0))
-    attachById(world.graph, e2.id, Particle(1000, 0, 0))
-    attachById(world.graph, e3.id, Particle(1000, 0, 0))
-    attachById(world.graph, e4.id, Particle(1000, 0, 0))
+  window.addEmitter = function () {
+    var x  = randBound(-1, 1)
+    var y  = randBound(-1, 1)
+    var dx = randBound(-1, 1)
+    var dy = randBound(-1, 1)
+    var e = Emitter(2000, 10, .0008, .4, x, y, dx, dy)  
+    attachById(world.graph, world.graph.rootNodeId, e)
+    for (var i = 0; i < 50; ++i) {
+      attachById(world.graph, e.id, Particle(1000, 0, 0))
+    }
   }
+  canvas.addEventListener("click", addEmitter)
+
+  addEmitter()
+  addEmitter()
+  addEmitter()
+  addEmitter()
+  addEmitter()
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeAnimate(gl, world))
 })
