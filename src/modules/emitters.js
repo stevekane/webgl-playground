@@ -1,6 +1,7 @@
 var prodash   = require("prodash")
 var random    = require("./random")
 var find      = prodash.array.find
+var curry     = prodash.functions.curry
 var randBound = random.randBound
 var emitters  = {}
 
@@ -8,7 +9,16 @@ var scaleAndSpread = function (scale, spread, val) {
   return scale * (val + randBound(-1 * spread, spread))
 }
 
-var findFirstDead = find(function (e) { return !e.living })
+var findFirstDead = function (graph, childIds) {
+  var found
+  var childNode
+
+  for (var i = 0; i < childIds.length; ++i) {
+    childNode = graph.nodes[childIds[i]]
+    found = childNode.living ? found : childNode
+  }
+  return found
+}
 
 /*
   check if it is time to fire a particle, if so, they find
@@ -16,11 +26,11 @@ var findFirstDead = find(function (e) { return !e.living })
   and a time to die
   N.B. The velocity is affected by both the speed and the spread
 */
-emitters.updateEmitter = function (time, e) {
+emitters.updateEmitter = function (time, graph, e) {
   var particle 
 
   if (time > e.nextFireTime) {
-    particle             = findFirstDead(e.children)
+    particle             = findFirstDead(graph, e.childIds)
     particle.timeToDie   = time + particle.lifespan
     particle.living      = true
     particle.position[0] = e.position[0]

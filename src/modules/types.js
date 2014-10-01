@@ -1,6 +1,5 @@
 var prodash = require("prodash")
 var uuid    = require("node-uuid")
-var Node    = prodash.graph.Node
 var vec2    = require("../modules/vec2")
 var Vec2    = vec2.Vec2
 var types   = {}
@@ -67,27 +66,21 @@ types.LoadedProgram = function (gl, vSrc, fSrc) {
   return lp 
 }
 
-types.Particle = function (lifespan, px, py, vx, vy, ax, ay) {
-  return Node({
+types.Particle = function (lifespan, px, py) {
+  return {
     id:           uuid.v4(),
     position:     Vec2(px, py),
-    velocity:     Vec2(vx, vy),
-    acceleration: Vec2(ax, ay),
+    velocity:     Vec2(0, 0),
+    acceleration: Vec2(0, -0.00000009),
     renderable:   true,
     timeToDie:    0,
     lifespan:     lifespan,
     living:       false
-  }) 
+  }
 }
 
-types.Emitter = function (count, lifespan, rate, speed, spread, px, py, dx, dy) {
-  var particles = []
-
-  for (var i = 0; i < count; ++i) {
-    particles.push(types.Particle(lifespan, px, py, 0, 0, 0, -0.0000009))
-  }
-
-  return Node({
+types.Emitter = function (lifespan, rate, speed, spread, px, py, dx, dy) {
+  return {
     id:           uuid.v4(),
     emitter:      true,
     rate:         rate, 
@@ -100,7 +93,7 @@ types.Emitter = function (count, lifespan, rate, speed, spread, px, py, dx, dy) 
     direction:    Vec2(dx, dy),
     renderable:   false,
     living:       true
-  }, particles)
+  }
 }
 
 module.exports = types

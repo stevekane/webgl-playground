@@ -41,6 +41,7 @@ var nodeReduce = function (redFn, nodeId, accum, graph) {
 //Graph -> String -> Node -> Void
 var attachById = curry(function (graph, parentId, node) {
   if(!graph.nodes[parentId]) throw new Error(parentId + " not found in graph")
+  var node = node instanceof Node ? node : Node(node)
 
   graph.nodes[node.id]          = node
   graph.nodes[node.id].parentId = parentId

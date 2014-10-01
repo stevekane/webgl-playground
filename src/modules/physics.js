@@ -1,3 +1,5 @@
+var fns     = require("prodash")
+var curry   = fns.functions.curry
 var physics = {}
 
 physics.updatePosition = function (dT, e) {
@@ -12,7 +14,7 @@ physics.updateVelocity = function (dT, e) {
   return e
 }
 
-physics.updatePhysics = function (dT, e) {
+physics.updatePhysics = function (dT, graph, e) {
   physics.updateVelocity(dT, e)
   physics.updatePosition(dT, e)
   return e
