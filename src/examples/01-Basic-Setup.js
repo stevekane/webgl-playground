@@ -28,7 +28,8 @@ var killTheOld        = lifetime.killTheOld
 var Clock             = clock.Clock
 var updateClock       = clock.updateClock
 var Camera            = camera.Camera
-var ticker            = fps({every: 10})
+var updateCamera      = camera.updateCamera
+var ticker            = fps({every: 100})
 var canvas            = document.getElementById("playground")
 var stats             = document.getElementById("stats")
 var gl                = canvas.getContext("webgl")
@@ -59,8 +60,8 @@ var updateEntities = function (fn, world) {
 function makeUpdate (world) {
   updateClock(world.clock, performance.now())
   return function update () {
-    mat4.rotateY(world.camera.view, world.camera.view, Math.PI / 180)
     updateClock(world.clock, performance.now())
+    updateCamera(world, world.camera)
     updateEntities(killTheOld, world)
     updateEntities(updatePhysics, world)
     updateEntities(updateEmitter, world)
@@ -78,7 +79,6 @@ function makeAnimate (gl, world) {
       rawSizes.push(node.size) 
     }
   }
-  var model = mat4.create()
   var positions 
   var sizes
   //temporary... should refactor
@@ -95,7 +95,6 @@ function makeAnimate (gl, world) {
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
-    gl.uniformMatrix4fv(lp.uniforms.uModel, false, model)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
     gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
     updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
@@ -109,7 +108,7 @@ async.parallel({
   vertex:   partial(loadShader, "/shaders/01v.glsl"),
   fragment: partial(loadShader, "/shaders/01f.glsl")
 }, function (err, shaders) {
-  var fov             = 50 * Math.PI / 180
+  var fov             = .5 * Math.PI
   var aspect          = canvas.clientWidth / canvas.clientHeight
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
@@ -122,23 +121,21 @@ async.parallel({
   }
 
   window.world = world
-  window.addEmitter = function () {
-    var x  = randBound(-1, 1)
-    var y  = randBound(-1, 1)
-    var z  = randBound(-1, 1)
-    var dx = randBound(-1, 1)
-    var dy = randBound(-1, 1)
-    var dz = randBound(-1, 1)
-    var e  = Emitter(2000, 10, .0008, .4, x, y, z, dx, dy, dz)  
-    attachById(world.graph, world.graph.rootNodeId, e)
-    for (var i = 0; i < 50; ++i) {
-      attachById(world.graph, e.id, Particle(1000, 0, 0, 0))
+  var buildEmitter = function (transFn) {
+    var count  = 8
+    var spread = 2
+    var diff   = spread / count
+    var e
+
+    for (var i = -1 * count; i < 1 * count; i+=.01 * count) {
+      e  = Emitter(2000, 10, .004, .4, transFn(i) * diff,  i / count, 0, 1, 0, 1)  
+      attachById(world.graph, world.graph.rootNodeId, e)
+      for (var j = 0; j < 50; ++j) {
+        attachById(world.graph, e.id, Particle(1000, 0, 0, 0))
+      }
     }
   }
-  addEmitter()
-  addEmitter()
-  addEmitter()
-  canvas.addEventListener("click", addEmitter)
+  buildEmitter(Math.sin)
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeAnimate(gl, world))
 })
