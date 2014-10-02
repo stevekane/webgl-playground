@@ -59,6 +59,7 @@ var updateEntities = function (fn, world) {
 function makeUpdate (world) {
   updateClock(world.clock, performance.now())
   return function update () {
+    mat4.rotateY(world.camera.view, world.camera.view, Math.PI / 180)
     updateClock(world.clock, performance.now())
     updateEntities(killTheOld, world)
     updateEntities(updatePhysics, world)
@@ -73,6 +74,7 @@ function makeAnimate (gl, world) {
     if (node.living && node.renderable) {
       rawPositions.push(node.position[0]) 
       rawPositions.push(node.position[1]) 
+      rawPositions.push(node.position[2]) 
       rawSizes.push(node.size) 
     }
   }
@@ -96,9 +98,9 @@ function makeAnimate (gl, world) {
     gl.uniformMatrix4fv(lp.uniforms.uModel, false, model)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
     gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
-    updateBuffer(gl, 2, lp.attributes.aPosition, lp.buffers.aPosition, positions)
+    updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
     updateBuffer(gl, 1, lp.attributes.aSize, lp.buffers.aSize, sizes)
-    gl.drawArrays(gl.POINTS, 0, positions.length / 2)
+    gl.drawArrays(gl.POINTS, 0, positions.length / 3)
     requestAnimationFrame(animate) 
   }
 }
