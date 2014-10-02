@@ -2,7 +2,6 @@ var prodash           = require("prodash")
 var async             = require("async")
 var fps               = require("fps")
 var mat4              = require("gl-mat4")
-var ticker            = fps({every: 10})
 var graph             = require("../modules/graph")
 var types             = require("../modules/types")
 var loaders           = require("../modules/loaders")
@@ -11,6 +10,7 @@ var random            = require("../modules/random")
 var physics           = require("../modules/physics")
 var lifetime          = require("../modules/lifetime")
 var emitters          = require("../modules/emitters")
+var clock             = require("../modules/clock")
 var Graph             = graph.Graph
 var attachById        = graph.attachById
 var partial           = prodash.functions.partial
@@ -24,6 +24,9 @@ var randBound         = random.randBound
 var updatePhysics     = physics.updatePhysics
 var updateEmitter     = emitters.updateEmitter
 var killTheOld        = lifetime.killTheOld
+var Clock             = clock.Clock
+var updateClock       = clock.updateClock
+var ticker            = fps({every: 10})
 var canvas            = document.getElementById("playground")
 var stats             = document.getElementById("stats")
 var gl                = canvas.getContext("webgl")
@@ -52,14 +55,9 @@ var updateEntities = function (fn, world) {
 }
 
 function makeUpdate (world) {
-  world.times.oldTime = performance.now()
-  world.times.newTime = world.times.oldTime
-
+  updateClock(world.clock, performance.now())
   return function update () {
-    world.times.oldTime = world.times.newTime
-    world.times.newTime = performance.now()
-    world.times.dT      = world.times.newTime - world.times.oldTime
-
+    updateClock(world.clock, performance.now())
     updateEntities(killTheOld, world)
     updateEntities(updatePhysics, world)
     updateEntities(updateEmitter, world)
@@ -69,7 +67,7 @@ function makeUpdate (world) {
 function makeAnimate (gl, world) {
   var rawPositions = []
   var rawSize      = []
-  var buildBuffers  = function (world, node) {
+  var buildBuffers = function (world, node) {
     if (node.living && node.renderable) {
       rawPositions.push(node.position[0]) 
       rawPositions.push(node.position[1]) 
@@ -105,42 +103,35 @@ async.parallel({
 }, function (err, shaders) {
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
-    times: {
-      dT:      0,
-      newTime: 0,
-      oldTime: 0
-    },
+    clock:    Clock(performance.now()),
+    camera:   {},
+    graph:    Graph(),
     programs: {
       particle: particleProgram
-    },
-    camera: {
-    
-    },
-    graph: Graph()
+    }
   }
   var e1 = Emitter(2000, 10, .0008, .4, -1, 1, 1, -1)
   var e2 = Emitter(2000, 10, .0008, .4, 1, 1, -1, -1)
   var e3 = Emitter(2000, 10, .0008, .4, -1, -1, 1, 1)
   var e4 = Emitter(2000, 10, .0008, .4, 1, -1, -1, 1)
 
+  window.world = world
+
   window.addEmitter = function () {
     var x  = randBound(-1, 1)
     var y  = randBound(-1, 1)
     var dx = randBound(-1, 1)
     var dy = randBound(-1, 1)
-    var e = Emitter(2000, 10, .0008, .4, x, y, dx, dy)  
+    var e  = Emitter(2000, 10, .0008, .4, x, y, dx, dy)  
     attachById(world.graph, world.graph.rootNodeId, e)
     for (var i = 0; i < 50; ++i) {
       attachById(world.graph, e.id, Particle(1000, 0, 0))
     }
   }
+  addEmitter()
+  addEmitter()
+  addEmitter()
   canvas.addEventListener("click", addEmitter)
-
-  addEmitter()
-  addEmitter()
-  addEmitter()
-  addEmitter()
-  addEmitter()
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeAnimate(gl, world))
 })

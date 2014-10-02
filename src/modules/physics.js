@@ -20,8 +20,8 @@ physics.updateVelocity = function (dT, e) {
 physics.updatePhysics = function (world, e) {
   if (!hasPhysics(e)) return
   if (!e.living)      return
-  physics.updateVelocity(world.times.dT, e)
-  physics.updatePosition(world.times.dT, e)
+  physics.updateVelocity(world.clock.dT, e)
+  physics.updatePosition(world.clock.dT, e)
   return e
 }
 

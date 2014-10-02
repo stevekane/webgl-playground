@@ -27,7 +27,7 @@ var findFirstDead = function (graph, childIds) {
   N.B. The velocity is affected by both the speed and the spread
 */
 emitters.updateEmitter = function (world, e) {
-  var time = world.times.newTime
+  var time = world.clock.newTime
   var particle 
 
   if (!e.emitter) return
