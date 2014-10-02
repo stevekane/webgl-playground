@@ -76,6 +76,7 @@ function makeAnimate (gl, world) {
       rawSizes.push(node.size) 
     }
   }
+  var model = mat4.create()
   var positions 
   var sizes
   //temporary... should refactor
@@ -92,6 +93,9 @@ function makeAnimate (gl, world) {
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
+    gl.uniformMatrix4fv(lp.uniforms.uModel, false, model)
+    gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
+    gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
     updateBuffer(gl, 2, lp.attributes.aPosition, lp.buffers.aPosition, positions)
     updateBuffer(gl, 1, lp.attributes.aSize, lp.buffers.aSize, sizes)
     gl.drawArrays(gl.POINTS, 0, positions.length / 2)
@@ -103,10 +107,12 @@ async.parallel({
   vertex:   partial(loadShader, "/shaders/01v.glsl"),
   fragment: partial(loadShader, "/shaders/01f.glsl")
 }, function (err, shaders) {
+  var fov             = 50 * Math.PI / 180
+  var aspect          = canvas.clientWidth / canvas.clientHeight
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
     clock:    Clock(performance.now()),
-    camera:   Camera(),
+    camera:   Camera(0, 0, 2, fov, aspect, 1, 10),
     graph:    Graph(),
     programs: {
       particle: particleProgram
