@@ -11,6 +11,7 @@ var physics           = require("../modules/physics")
 var lifetime          = require("../modules/lifetime")
 var emitters          = require("../modules/emitters")
 var clock             = require("../modules/clock")
+var camera            = require("../modules/camera")
 var Graph             = graph.Graph
 var attachById        = graph.attachById
 var partial           = prodash.functions.partial
@@ -26,6 +27,7 @@ var updateEmitter     = emitters.updateEmitter
 var killTheOld        = lifetime.killTheOld
 var Clock             = clock.Clock
 var updateClock       = clock.updateClock
+var Camera            = camera.Camera
 var ticker            = fps({every: 10})
 var canvas            = document.getElementById("playground")
 var stats             = document.getElementById("stats")
@@ -104,7 +106,7 @@ async.parallel({
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
     clock:    Clock(performance.now()),
-    camera:   {},
+    camera:   Camera(),
     graph:    Graph(),
     programs: {
       particle: particleProgram
