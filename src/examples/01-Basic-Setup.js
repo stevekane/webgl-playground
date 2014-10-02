@@ -110,22 +110,19 @@ async.parallel({
       particle: particleProgram
     }
   }
-  var e1 = Emitter(2000, 10, .0008, .4, -1, 1, 1, -1)
-  var e2 = Emitter(2000, 10, .0008, .4, 1, 1, -1, -1)
-  var e3 = Emitter(2000, 10, .0008, .4, -1, -1, 1, 1)
-  var e4 = Emitter(2000, 10, .0008, .4, 1, -1, -1, 1)
 
   window.world = world
-
   window.addEmitter = function () {
     var x  = randBound(-1, 1)
     var y  = randBound(-1, 1)
+    var z  = randBound(-1, 1)
     var dx = randBound(-1, 1)
     var dy = randBound(-1, 1)
-    var e  = Emitter(2000, 10, .0008, .4, x, y, dx, dy)  
+    var dz = randBound(-1, 1)
+    var e  = Emitter(2000, 10, .0008, .4, x, y, z, dx, dy, dz)  
     attachById(world.graph, world.graph.rootNodeId, e)
     for (var i = 0; i < 50; ++i) {
-      attachById(world.graph, e.id, Particle(1000, 0, 0))
+      attachById(world.graph, e.id, Particle(1000, 0, 0, 0))
     }
   }
   addEmitter()

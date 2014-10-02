@@ -39,8 +39,10 @@ emitters.updateEmitter = function (world, e) {
     particle.size        = randBound(1, 10) | 0
     particle.position[0] = e.position[0]
     particle.position[1] = e.position[1]
+    particle.position[2] = e.position[2]
     particle.velocity[0] = scaleAndSpread(e.speed, e.spread, e.direction[0])
     particle.velocity[1] = scaleAndSpread(e.speed, e.spread, e.direction[1])
+    particle.velocity[2] = scaleAndSpread(e.speed, e.spread, e.direction[2])
     e.nextFireTime += e.rate
   }
 }

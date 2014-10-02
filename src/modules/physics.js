@@ -8,12 +8,14 @@ var hasPhysics = function (node) {
 physics.updatePosition = function (dT, e) {
   e.position[0] = e.position[0] + dT * e.velocity[0]
   e.position[1] = e.position[1] + dT * e.velocity[1]
+  e.position[2] = e.position[2] + dT * e.velocity[2]
   return e
 }
 
 physics.updateVelocity = function (dT, e) {
   e.velocity[0] = e.velocity[0] + dT * e.acceleration[0]
   e.velocity[1] = e.velocity[1] + dT * e.acceleration[1]
+  e.velocity[2] = e.velocity[2] + dT * e.acceleration[2]
   return e
 }
 

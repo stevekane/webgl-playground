@@ -1,7 +1,9 @@
 var prodash = require("prodash")
 var uuid    = require("node-uuid")
+var vec3    = require("../modules/vec3")
 var vec2    = require("../modules/vec2")
 var Vec2    = vec2.Vec2
+var Vec3    = vec3.Vec3
 var types   = {}
 
 //given src and type, compile and return shader
@@ -66,12 +68,12 @@ types.LoadedProgram = function (gl, vSrc, fSrc) {
   return lp 
 }
 
-types.Particle = function (lifespan, px, py) {
+types.Particle = function (lifespan, px, py, pz) {
   return {
     id:           uuid.v4(),
-    position:     Vec2(px, py),
-    velocity:     Vec2(0, 0),
-    acceleration: Vec2(0, -0.0000015),
+    position:     Vec3(px, py, pz),
+    velocity:     Vec3(0, 0, 0),
+    acceleration: Vec3(0, -0.0000015, 0),
     renderable:   true,
     size:         4.0,
     timeToDie:    0,
@@ -80,7 +82,7 @@ types.Particle = function (lifespan, px, py) {
   }
 }
 
-types.Emitter = function (lifespan, rate, speed, spread, px, py, dx, dy) {
+types.Emitter = function (lifespan, rate, speed, spread, px, py, pz, dx, dy, dz) {
   return {
     id:           uuid.v4(),
     emitter:      true,
@@ -88,10 +90,10 @@ types.Emitter = function (lifespan, rate, speed, spread, px, py, dx, dy) {
     speed:        speed,
     spread:       spread,
     nextFireTime: 0,
-    position:     Vec2(px, py),
-    velocity:     Vec2(0, 0),
-    acceleration: Vec2(0, 0),
-    direction:    Vec2(dx, dy),
+    position:     Vec3(px, py, pz),
+    velocity:     Vec3(0, 0, 0),
+    acceleration: Vec3(0, 0, 0),
+    direction:    Vec3(dx, dy, dz),
     renderable:   false,
     living:       true
   }
