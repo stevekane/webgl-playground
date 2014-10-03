@@ -14,7 +14,7 @@ float calculateSize () {
   vec4 eyePos    = uView * aPosition;
   vec4 projVoxel = uProjection * vec4(uSize, uSize, eyePos.z, eyePos.w);
   vec2 projSize  = uScreenSize * projVoxel.xy / projVoxel.w;
-  float size     = .02 * (projSize.x + projSize.y);
+  float size     = .004 * (projSize.x + projSize.y);
 
   return size;
 }

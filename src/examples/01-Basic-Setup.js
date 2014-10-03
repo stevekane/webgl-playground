@@ -54,7 +54,7 @@ var updateEntities = function (fn, world) {
 function makeUpdate (world) {
   return function update () {
     updateClock(world.clock, performance.now())
-    //updateCamera(world, world.camera)
+    updateCamera(world, world.camera)
     updateEntities(killTheOld, world)
     updateEntities(updatePhysics, world)
     updateEntities(updateEmitter, world)
@@ -116,7 +116,7 @@ async.parallel({
   window.gl = gl
 
   var spawnAt = function (speed, x, y, dx, dy) {
-    var e = Emitter(1000, 10, speed, .1, x, y, 0, dx, dy, 0)  
+    var e = Emitter(1000, 10, speed, .1, x, y, 0, dx, dy, randBound(-0.2, 0.2))  
 
     attachById(world.graph, world.graph.rootNodeId, e)
     for (var j = 0; j < 50; ++j) {
@@ -125,12 +125,12 @@ async.parallel({
   }
 
   var buildEmitter = function (transFn) {
-    var count  = 8
+    var count  = 16
     var spread = 2
     var diff   = spread / count
     var e
 
-    for (var i = -1 * count; i < 1 * count; i+=.1 * count) {
+    for (var i = -1 * count; i < 1 * count; i+=.05 * count) {
       spawnAt(.004, transFn(i) * diff, i / count, 1, 0)
     }
   }
