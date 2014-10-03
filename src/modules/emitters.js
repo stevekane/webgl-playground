@@ -46,14 +46,13 @@ var scaleAndSpread = function (scale, spread, val) {
 }
 
 var findFirstDead = function (graph, childIds) {
-  var found
   var childNode
 
   for (var i = 0; i < childIds.length; ++i) {
     childNode = graph.nodes[childIds[i]]
-    found = childNode.living ? found : childNode
+    if (!childNode.living) return childNode
   }
-  return found
+  return undefined
 }
 
 var updateEmitter = function (world, e) {
