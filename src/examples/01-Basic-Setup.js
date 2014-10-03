@@ -1,38 +1,37 @@
-var prodash           = require("prodash")
-var async             = require("async")
-var fps               = require("fps")
-var mat4              = require("gl-mat4")
-var graph             = require("../modules/graph")
-var types             = require("../modules/types")
-var loaders           = require("../modules/loaders")
-var utils             = require("../modules/gl-utils")
-var random            = require("../modules/random")
-var physics           = require("../modules/physics")
-var lifetime          = require("../modules/lifetime")
-var emitters          = require("../modules/emitters")
-var clock             = require("../modules/clock")
-var camera            = require("../modules/camera")
-var Graph             = graph.Graph
-var attachById        = graph.attachById
-var partial           = prodash.functions.partial
-var LoadedProgram     = types.LoadedProgram
-var Particle          = types.Particle
-var Emitter           = types.Emitter
-var loadShader        = loaders.loadShader
-var updateBuffer      = utils.updateBuffer
-var clearContext      = utils.clearContext
-var randBound         = random.randBound
-var updatePhysics     = physics.updatePhysics
-var updateEmitter     = emitters.updateEmitter
-var killTheOld        = lifetime.killTheOld
-var Clock             = clock.Clock
-var updateClock       = clock.updateClock
-var Camera            = camera.Camera
-var updateCamera      = camera.updateCamera
-var canvas            = document.getElementById("playground")
-var stats             = document.getElementById("stats")
-var gl                = canvas.getContext("webgl")
-var shaders           = {
+var prodash       = require("prodash")
+var async         = require("async")
+var fps           = require("fps")
+var mat4          = require("gl-mat4")
+var graph         = require("../modules/graph")
+var loaders       = require("../modules/loaders")
+var utils         = require("../modules/gl-utils")
+var random        = require("../modules/random")
+var physics       = require("../modules/physics")
+var lifetime      = require("../modules/lifetime")
+var emitters      = require("../modules/emitters")
+var clock         = require("../modules/clock")
+var camera        = require("../modules/camera")
+var Graph         = graph.Graph
+var attachById    = graph.attachById
+var partial       = prodash.functions.partial
+var Particle      = emitters.Particle
+var Emitter       = emitters.Emitter
+var updateEmitter = emitters.updateEmitter
+var loadShader    = loaders.loadShader
+var updateBuffer  = utils.updateBuffer
+var clearContext  = utils.clearContext
+var LoadedProgram = utils.LoadedProgram
+var randBound     = random.randBound
+var updatePhysics = physics.updatePhysics
+var killTheOld    = lifetime.killTheOld
+var Clock         = clock.Clock
+var updateClock   = clock.updateClock
+var Camera        = camera.Camera
+var updateCamera  = camera.updateCamera
+var canvas        = document.getElementById("playground")
+var stats         = document.getElementById("stats")
+var gl            = canvas.getContext("webgl")
+var shaders       = {
   vertex:   "/shaders/01v.glsl",
   fragment: "/shaders/01f.glsl"
 }
@@ -103,7 +102,7 @@ async.parallel({
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
     clock:    Clock(performance.now()),
-    camera:   Camera(0, 0, 4, fov, aspect, 1, 10),
+    camera:   Camera(0, 0, 3, fov, aspect, 1, 10),
     graph:    Graph(),
     programs: {
       particle: particleProgram
@@ -122,20 +121,6 @@ async.parallel({
     }
   }
 
-  //L
-  spawnAt(.001, -1, -1, 1, 0)
-  spawnAt(.002, -1, -1, 0, 1)
-
-  //T
-  spawnAt(.001, 0, 1, -1, 0)
-  spawnAt(.001, 0, 1, 1, 0)
-  spawnAt(.002, 0, 1, 0, -1)
-
-  //N
-  spawnAt(.002, 1, -1, 0, 1)
-  spawnAt(.002, 1, 1, .6, -1)
-  spawnAt(.002, 2, -1, 0, 1)
-
   var buildEmitter = function (transFn) {
     var count  = 8
     var spread = 2
@@ -143,14 +128,10 @@ async.parallel({
     var e
 
     for (var i = -1 * count; i < 1 * count; i+=.1 * count) {
-      e  = Emitter(2000, 10, .004, .4, transFn(i) * diff,  i / count, 0, 1, 0, 1)  
-      attachById(world.graph, world.graph.rootNodeId, e)
-      for (var j = 0; j < 50; ++j) {
-        attachById(world.graph, e.id, Particle(1000, 0, 0, 0))
-      }
+      spawnAt(.004, transFn(i) * diff, i / count, 1, 0)
     }
   }
-  //buildEmitter(Math.sin)
+  buildEmitter(Math.sin)
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeAnimate(gl, world))
 })

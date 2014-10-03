@@ -17,6 +17,5 @@ void main () {
   float size     = .02 * (projSize.x + projSize.y);
   gl_PointSize   = size;
   gl_Position    = uProjection * uView * aPosition;
-  //vColor         = uColor;
-  vColor = vec4(uColor.x, uColor.y, uColor.z, size / uSize);
+  vColor         = vec4(uColor.x, uColor.y, uColor.z, size / uSize);
 }
