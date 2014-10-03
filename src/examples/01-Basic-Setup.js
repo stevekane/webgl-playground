@@ -52,10 +52,9 @@ var updateEntities = function (fn, world) {
 }
 
 function makeUpdate (world) {
-  updateClock(world.clock, performance.now())
   return function update () {
     updateClock(world.clock, performance.now())
-    updateCamera(world, world.camera)
+    //updateCamera(world, world.camera)
     updateEntities(killTheOld, world)
     updateEntities(updatePhysics, world)
     updateEntities(updateEmitter, world)
@@ -63,6 +62,7 @@ function makeUpdate (world) {
 }
 
 function makeAnimate (gl, world) {
+  var lp           = world.programs.particle
   var rawPositions = []
   var buildBuffers = function (world, node) {
     if (node.living && node.renderable) {
@@ -71,9 +71,11 @@ function makeAnimate (gl, world) {
       rawPositions.push(node.position[2]) 
     }
   }
+  var lights = [
+    1.0, 1.0, 1.0, 0.0,
+    1.5, 0.0, 0.0, 0.0 
+  ]
   var positions 
-  //temporary... should refactor
-  var lp = world.programs.particle
 
   return function animate () {
     rawPositions = []
@@ -82,6 +84,7 @@ function makeAnimate (gl, world) {
 
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
+    gl.uniform3fv(lp.uniforms.uLights, lights)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
     gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
@@ -97,7 +100,7 @@ async.parallel({
   vertex:   partial(loadShader, "/shaders/01v.glsl"),
   fragment: partial(loadShader, "/shaders/01f.glsl")
 }, function (err, shaders) {
-  var fov             = .5 * Math.PI
+  var fov             = Math.PI / 2
   var aspect          = canvas.clientWidth / canvas.clientHeight
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
