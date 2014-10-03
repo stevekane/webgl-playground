@@ -29,7 +29,6 @@ var Clock             = clock.Clock
 var updateClock       = clock.updateClock
 var Camera            = camera.Camera
 var updateCamera      = camera.updateCamera
-var ticker            = fps({every: 100})
 var canvas            = document.getElementById("playground")
 var stats             = document.getElementById("stats")
 var gl                = canvas.getContext("webgl")
@@ -37,10 +36,6 @@ var shaders           = {
   vertex:   "/shaders/01v.glsl",
   fragment: "/shaders/01f.glsl"
 }
-
-ticker.on("data", function (val) {
-  stats.innerHTML = val | 0
-})
 
 //(World -> Node) -> String -> World -> Void
 var forEachNode = function (fn, nodeId, world) {
@@ -70,35 +65,30 @@ function makeUpdate (world) {
 
 function makeAnimate (gl, world) {
   var rawPositions = []
-  var rawSize      = []
   var buildBuffers = function (world, node) {
     if (node.living && node.renderable) {
       rawPositions.push(node.position[0]) 
       rawPositions.push(node.position[1]) 
       rawPositions.push(node.position[2]) 
-      rawSizes.push(node.size) 
     }
   }
   var positions 
-  var sizes
   //temporary... should refactor
   var lp = world.programs.particle
 
   return function animate () {
     rawPositions = []
-    rawSizes     = []
     updateEntities(buildBuffers, world)
     positions = new Float32Array(rawPositions)
-    sizes     = new Float32Array(rawSizes)
 
-    ticker.tick()
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
+    gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
     gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
+    gl.uniform1f(lp.uniforms.uSize, 1.0)
     updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
-    updateBuffer(gl, 1, lp.attributes.aSize, lp.buffers.aSize, sizes)
     gl.drawArrays(gl.POINTS, 0, positions.length / 3)
     requestAnimationFrame(animate) 
   }
@@ -113,7 +103,7 @@ async.parallel({
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
     clock:    Clock(performance.now()),
-    camera:   Camera(0, 0, 2, fov, aspect, 1, 10),
+    camera:   Camera(0, 0, 4, fov, aspect, 1, 10),
     graph:    Graph(),
     programs: {
       particle: particleProgram
@@ -121,13 +111,38 @@ async.parallel({
   }
 
   window.world = world
+  window.gl = gl
+
+  var spawnAt = function (speed, x, y, dx, dy) {
+    var e = Emitter(1000, 10, speed, .1, x, y, 0, dx, dy, 0)  
+
+    attachById(world.graph, world.graph.rootNodeId, e)
+    for (var j = 0; j < 50; ++j) {
+      attachById(world.graph, e.id, Particle(1000, 0, 0, 0))
+    }
+  }
+
+  //L
+  spawnAt(.001, -1, -1, 1, 0)
+  spawnAt(.002, -1, -1, 0, 1)
+
+  //T
+  spawnAt(.001, 0, 1, -1, 0)
+  spawnAt(.001, 0, 1, 1, 0)
+  spawnAt(.002, 0, 1, 0, -1)
+
+  //N
+  spawnAt(.002, 1, -1, 0, 1)
+  spawnAt(.002, 1, 1, .6, -1)
+  spawnAt(.002, 2, -1, 0, 1)
+
   var buildEmitter = function (transFn) {
     var count  = 8
     var spread = 2
     var diff   = spread / count
     var e
 
-    for (var i = -1 * count; i < 1 * count; i+=.01 * count) {
+    for (var i = -1 * count; i < 1 * count; i+=.1 * count) {
       e  = Emitter(2000, 10, .004, .4, transFn(i) * diff,  i / count, 0, 1, 0, 1)  
       attachById(world.graph, world.graph.rootNodeId, e)
       for (var j = 0; j < 50; ++j) {
@@ -135,7 +150,7 @@ async.parallel({
       }
     }
   }
-  buildEmitter(Math.sin)
+  //buildEmitter(Math.sin)
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeAnimate(gl, world))
 })
