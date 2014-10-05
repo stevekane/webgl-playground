@@ -1,7 +1,7 @@
 var mat4     = require("gl-mat4")
 var vec3     = require("./vec3")
 var Vec3     = vec3.Vec3
-var rotSpeed = Math.PI / 1800
+var rotSpeed = Math.PI / 3000
 var camera   = {}
 
 

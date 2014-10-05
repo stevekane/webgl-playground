@@ -71,10 +71,10 @@ function makeAnimate (gl, world) {
       rawPositions.push(node.position[2]) 
     }
   }
-  var lights = [
-    1.0, 1.0, 1.0, 0.0,
-    1.5, 0.0, 0.0, 0.0 
-  ]
+  var lights = new Float32Array([
+    0.0, 1.0, 0.0,
+    2.5, 0.0, 0.0
+  ])
   var positions 
 
   return function animate () {
@@ -84,7 +84,7 @@ function makeAnimate (gl, world) {
 
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
-    gl.uniform3fv(lp.uniforms.uLights, lights)
+    gl.uniform1fv(lp.uniforms["uLights[0]"], lights)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
     gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
@@ -105,7 +105,7 @@ async.parallel({
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
   var world           = {
     clock:    Clock(performance.now()),
-    camera:   Camera(0, 0, 3, fov, aspect, 1, 10),
+    camera:   Camera(0, 0, 2, fov, aspect, 1, 10),
     graph:    Graph(),
     programs: {
       particle: particleProgram
@@ -114,6 +114,16 @@ async.parallel({
 
   window.world = world
   window.gl = gl
+
+  window.getUniformLocation = function (name) {
+    var p = particleProgram.program
+    return gl.getUniformLocation(p, name) 
+  }
+  window.getUniformVal = function (name) {
+    var p = particleProgram.program
+    var l = gl.getUniformLocation(p, name) 
+    return gl.getUniform(p, l)
+  }
 
   var spawnAt = function (speed, x, y, dx, dy) {
     var e = Emitter(1000, 10, speed, .1, x, y, 0, dx, dy, randBound(-0.2, 0.2))  
