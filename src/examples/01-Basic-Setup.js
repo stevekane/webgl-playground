@@ -72,8 +72,9 @@ function makeAnimate (gl, world) {
     }
   }
   var lights = new Float32Array([
-    0.0, 1.0, 0.0,
-    2.5, 0.0, 0.0
+    0.0, 2.0, 0.0,
+    3.0, 0.0, 0.0,
+    0.0, -2.0, 0.0
   ])
   var positions 
 
@@ -84,7 +85,7 @@ function makeAnimate (gl, world) {
 
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
-    gl.uniform1fv(lp.uniforms["uLights[0]"], lights)
+    gl.uniform3fv(lp.uniforms["uLights[0]"], lights)
     gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
     gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
@@ -141,7 +142,7 @@ async.parallel({
     var e
 
     for (var i = -1 * count; i < 1 * count; i+=.05 * count) {
-      spawnAt(.004, transFn(i) * diff, i / count, 1, 0)
+      spawnAt(.004, transFn(i) * diff, i / count, 1, i / count)
     }
   }
   buildEmitter(Math.sin)
