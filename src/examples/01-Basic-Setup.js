@@ -11,6 +11,7 @@ var lifetime      = require("../modules/lifetime")
 var emitters      = require("../modules/emitters")
 var clock         = require("../modules/clock")
 var camera        = require("../modules/camera")
+var vec3          = require("../modules/vec3")
 var Graph         = graph.Graph
 var attachById    = graph.attachById
 var partial       = prodash.functions.partial
@@ -28,6 +29,7 @@ var Clock         = clock.Clock
 var updateClock   = clock.updateClock
 var Camera        = camera.Camera
 var updateCamera  = camera.updateCamera
+var Vec3          = vec3.Vec3
 var canvas        = document.getElementById("playground")
 var stats         = document.getElementById("stats")
 var gl            = canvas.getContext("webgl")
@@ -61,6 +63,22 @@ function makeUpdate (world) {
   }
 }
 
+//TODO: MOVE THIS.... testing only
+var formatLights = function (gl, lp, lights) {
+  var flatLights = []
+
+  for (var i = 0; i < lights.length; ++i) {
+    flatLights.push(lights[i].position[0])
+    flatLights.push(lights[i].position[1])
+    flatLights.push(lights[i].position[2])
+    flatLights.push(lights[i].rgb[0])
+    flatLights.push(lights[i].rgb[1])
+    flatLights.push(lights[i].rgb[2])
+  }
+  return flatLights
+}
+
+
 function makeAnimate (gl, world) {
   var lp           = world.programs.particle
   var rawPositions = []
@@ -71,11 +89,14 @@ function makeAnimate (gl, world) {
       rawPositions.push(node.position[2]) 
     }
   }
-  var lights = new Float32Array([
-    0.0, 2.0, 0.0,
-    3.0, 0.0, 0.0,
-    0.0, -2.0, 0.0
-  ])
+  
+  //INLINE NASTINESS.  Will factor out
+  var lights = [
+    {position: Vec3(0.0, 1.5, 0.0),  rgb: Vec3(1.0, 0.0, 0.0)},
+    {position: Vec3(1.5, 0.0, 0.0),  rgb: Vec3(0.0, 1.0, 0.0)},
+    {position: Vec3(0.0, -1.5, 0.0), rgb: Vec3(0.0, 0.0, 1.0)}
+  ]
+  var flatLights = formatLights(gl, lp, lights)
   var positions 
 
   return function animate () {
@@ -85,8 +106,8 @@ function makeAnimate (gl, world) {
 
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
-    gl.uniform3fv(lp.uniforms["uLights[0]"], lights)
-    gl.uniform4f(lp.uniforms.uColor, 1.0, 0.0, 0.0, 1.0)
+    gl.uniform3fv(lp.uniforms["uLights[0]"], flatLights)
+    gl.uniform4f(lp.uniforms.uColor, 0.0, 0.0, 0.0, 1.0)
     gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
     gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
