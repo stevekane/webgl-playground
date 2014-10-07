@@ -63,21 +63,28 @@ function makeUpdate (world) {
   }
 }
 
-//TODO: MOVE THIS.... testing only
+//Uses separate uniforms for different data
 var formatLights = function (gl, lp, lights) {
-  var flatLights = []
-
-  for (var i = 0; i < lights.length; ++i) {
-    flatLights.push(lights[i].position[0])
-    flatLights.push(lights[i].position[1])
-    flatLights.push(lights[i].position[2])
-    flatLights.push(lights[i].rgb[0])
-    flatLights.push(lights[i].rgb[1])
-    flatLights.push(lights[i].rgb[2])
+  var numLights = lights.length
+  var lightData = {
+    colors:      new Float32Array(numLights * 3),
+    positions:   new Float32Array(numLights * 3),
+    intensities: new Float32Array(numLights) 
   }
-  return flatLights
-}
+  var light
 
+  for (var i = 0; i < numLights; ++i) {
+    light                      = lights[i]
+    lightData.positions[i*3]   = light.position[0]
+    lightData.positions[i*3+1] = light.position[1]
+    lightData.positions[i*3+2] = light.position[2]
+    lightData.colors[i*3]      = light.rgb[0]
+    lightData.colors[i*3+1]    = light.rgb[1]
+    lightData.colors[i*3+2]    = light.rgb[2]
+    lightData.intensities[i]   = light.intensity
+  }
+  return lightData
+}
 
 function makeAnimate (gl, world) {
   var lp           = world.programs.particle
@@ -89,14 +96,12 @@ function makeAnimate (gl, world) {
       rawPositions.push(node.position[2]) 
     }
   }
-  
-  //INLINE NASTINESS.  Will factor out
   var lights = [
-    {position: Vec3(0.0, 1.5, 0.0),  rgb: Vec3(1.0, 0.0, 0.0)},
-    {position: Vec3(1.5, 0.0, 0.0),  rgb: Vec3(0.0, 1.0, 0.0)},
-    {position: Vec3(0.0, -1.5, 0.0), rgb: Vec3(0.0, 0.0, 1.0)}
+    {position: Vec3(0.0, 1.5, 0.0),  rgb: Vec3(1.0, 0.0, 0.0), intensity: 1.0},
+    {position: Vec3(1.5, 0.0, 0.0),  rgb: Vec3(0.0, 1.0, 0.0), intensity: 0.5},
+    {position: Vec3(0.0, -1.5, 0.0), rgb: Vec3(0.0, 0.3, 1.0), intensity: 0.7}
   ]
-  var flatLights = formatLights(gl, lp, lights)
+  var lightData = formatLights(gl, lp, lights)
   var positions 
 
   return function animate () {
@@ -106,7 +111,9 @@ function makeAnimate (gl, world) {
 
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
-    gl.uniform3fv(lp.uniforms["uLights[0]"], flatLights)
+    gl.uniform3fv(lp.uniforms["uLightPositions[0]"], lightData.positions)
+    gl.uniform3fv(lp.uniforms["uLightColors[0]"], lightData.colors)
+    gl.uniform1fv(lp.uniforms["uLightIntensities[0]"], lightData.intensities)
     gl.uniform4f(lp.uniforms.uColor, 0.0, 0.0, 0.0, 1.0)
     gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
     gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)

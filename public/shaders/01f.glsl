@@ -1,27 +1,28 @@
 precision highp float;
 
 uniform vec4 uColor;
-//uLights is two sequential vec3s in a row.  First is position, second is RGB
-uniform vec3 uLights[6];
+uniform vec3 uLightPositions[3];
+uniform vec3 uLightColors[3];
+uniform float uLightIntensities[3];
 
 varying vec4 vPosition;
 
-float calcIntensity (vec3 pos, vec3 light) {
+float calcIntensity (vec3 pos, float intensity, vec3 light) {
   float d = distance(pos, light);
 
-  return 1.0 / (d * d + 1.0);
+  return intensity / (d * d + 1.0);
 }
 
 void main () {
   float i    = 0.0;
   vec3 pos   = vec3(vPosition);
-  vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+  vec4 color = uColor;
 
-  for (int j = 0; j < 6; j+=2) {
-    i = calcIntensity(pos, uLights[j]);
-    color.x += i * uLights[j+1].x;
-    color.y += i * uLights[j+1].y;
-    color.z += i * uLights[j+1].z;
+  for (int j = 0; j < 3; j++) {
+    i        = calcIntensity(pos, uLightIntensities[j], uLightPositions[j]);
+    color.x += i * uLightColors[j].x;
+    color.y += i * uLightColors[j].y;
+    color.z += i * uLightColors[j].z;
   }
 
   gl_FragColor = color;

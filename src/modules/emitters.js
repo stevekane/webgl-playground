@@ -14,7 +14,6 @@ var Particle = function (lifespan, px, py, pz) {
     position:     Vec3(px, py, pz),
     velocity:     Vec3(0, 0, 0),
     acceleration: Vec3(0, -0.0000015, 0),
-    //acceleration: Vec3(0, 0, 0),
     renderable:   true,
     size:         4.0,
     timeToDie:    0,
