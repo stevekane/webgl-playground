@@ -158,17 +158,17 @@ async.parallel({
     }
   }
 
-  var buildEmitter = function (transFn) {
+  var buildEmitters = function (transFn) {
     var count  = 16
     var spread = 2
     var diff   = spread / count
     var e
 
-    for (var i = -1 * count; i < 1 * count; i+=.05 * count) {
+    for (var i = -1 * count; i < 1 * count; i+=.02 * count) {
       spawnAt(.004, transFn(i) * diff, i / count, 1, i / count)
     }
   }
-  buildEmitter(Math.sin)
+  buildEmitters(Math.sin)
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeRender(gl, world))
 })

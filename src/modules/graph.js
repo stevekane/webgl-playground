@@ -18,7 +18,7 @@ var Node = function (hash) {
 }
 
 var Graph = function (rootNode) {
-  if (!(this instanceof Graph)) return new Graph
+  if (!(this instanceof Graph)) return new Graph(rootNode)
   var rootNode = rootNode || Node({ id: uuid.v4() })
 
   this.nodes              = {}
@@ -40,12 +40,20 @@ var nodeReduce = function (redFn, nodeId, accum, graph) {
 
 //Graph -> String -> Node -> Void
 var attachById = curry(function (graph, parentId, node) {
-  if(!graph.nodes[parentId]) throw new Error(parentId + " not found in graph")
+  if (!graph.nodes[parentId]) throw new Error(parentId + " not found in graph")
   var node = node instanceof Node ? node : Node(node)
 
   graph.nodes[node.id]          = node
   graph.nodes[node.id].parentId = parentId
   graph.nodes[parentId].childIds.push(node.id)
+})
+
+var attachToNode = curry(function (graph, parentNode, node) {
+  attachById(graph, parentNode.id, node)
+})
+
+var attachToRoot = curry(function (graph, node) {
+  attachById(graph, graph.rootNodeId, node)
 })
 
 Graph.prototype.__reduce = function (redFn, accum, graph) {
@@ -54,7 +62,9 @@ Graph.prototype.__reduce = function (redFn, accum, graph) {
 
 Graph.prototype.__empty = function () { return new Graph }
 
-graph.Node       = Node
-graph.Graph      = Graph
-graph.attachById = attachById
-module.exports   = graph
+graph.Node         = Node
+graph.Graph        = Graph
+graph.attachById   = attachById
+graph.attachToNode = attachToNode
+graph.attachToRoot = attachToRoot
+module.exports     = graph
