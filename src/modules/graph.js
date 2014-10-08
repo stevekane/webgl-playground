@@ -30,10 +30,9 @@ var Graph = function (rootNode) {
 var nodeReduce = function (redFn, nodeId, accum, graph) {
   var node = graph.nodes[nodeId]
 
-  accum = redFn(accum, node)
-
+  redFn(accum, node)
   for (var i = 0; i < node.childIds.length; ++i) {
-    accum = nodeReduce(redFn, node.childIds[i], accum, graph)   
+    nodeReduce(redFn, node.childIds[i], accum, graph)   
   }
   return accum
 }

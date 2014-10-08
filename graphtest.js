@@ -1,41 +1,41 @@
 var prodash      = require("prodash")
 var graph        = require("./src/modules/graph")
-var vec3         = require("./src/modules/vec3")
+var light        = require("./src/modules/light")
 var Graph        = graph.Graph
-var Node         = graph.Node
-var cloneVec3    = vec3.cloneVec3
-var attachById   = graph.attachById
 var attachToRoot = graph.attachToRoot
 var attachToNode = graph.attachToNode
+var PointLight   = light.PointLight
 var compose      = prodash.functions.compose
 var transduce    = prodash.transducers.transduce
-var filtering    = prodash.transducers.filtering
 var checking     = prodash.transducers.checking
 var plucking     = prodash.transducers.plucking
-var mapping      = prodash.transducers.mapping
 var cat          = prodash.transducers.cat
 var cons         = prodash.transducers.cons
 
-var g  = Graph(Node({id: 1}))
-var l1 = Node({light: true, position: new Float32Array([1,2,3])})
-var l2 = Node({light: true, position: new Float32Array([4,3,2])})
-var l3 = Node({light: true, position: new Float32Array([1,2,4])})
+var g           = Graph()
+var l1          = PointLight(1,2,3)
+var l2          = PointLight(4,3,2)
+var l3          = PointLight(1,2,4)
+var n           = {type: "notlight"}
+var lights      = []
+var positions   = []
+var colors      = []
+var intensities = []
 
-var getLights             = checking("light", true)
-var getPositions          = plucking("position")
-var cloning               = mapping(cloneVec3)
-var flattenLightPositions = compose([
-  getLights,
-  getPositions,
-  cloning,
-  cat
-])
-
-var buildLightsList     = transduce(getLights, cons, [])
-var buildLightPositions = transduce(flattenLightPositions, cons, [])
+var isLight = checking("light", true)
+var flatten = function (propName) { 
+  return compose([plucking(propName), cat])
+}
 
 attachToRoot(g, l1)
 attachToRoot(g, l2)
 attachToNode(g, l1, l3)
-//console.log(JSON.stringify(g, null, 2))
-console.log(buildLightPositions(g))
+attachToNode(g, l3, n)
+
+lights      = transduce(isLight, cons, [], g)
+positions   = transduce(flatten("position"), cons, [], lights)
+colors      = transduce(flatten("rgb"), cons, [], lights)
+intensities = transduce(plucking("intensity"), cons, [], lights)
+console.log(positions)
+console.log(colors)
+console.log(intensities)
