@@ -1,8 +1,8 @@
-let {transducers, functions}                   = require("prodash")
-let {Graph, attachToRoot, attachToNode}        = require("./src/modules/graph")
-let {PointLight}                               = require("./src/modules/light")
-let {compose}                                  = functions
-let {transduce, checking, plucking, cat, cons} = transducers
+let {transducers, functions}                         = require("prodash")
+let {Graph, attachToRoot, attachToNode}              = require("./src/modules/graph")
+let {PointLight}                                     = require("./src/modules/light")
+let {compose}                                        = functions
+let {transduce, into, checking, plucking, cat, cons} = transducers
 
 let g           = Graph()
 let l1          = PointLight(1,2,3)
@@ -16,16 +16,20 @@ let intensities = []
 
 let isLight = checking("light", true)
 let flatten = (propName) => compose([plucking(propName), cat])
+let over    = (arr, redFn, col) => {
+  arr.length = 0
+  return into(arr, redFn, col)
+}
 
 attachToRoot(g, l1)
 attachToRoot(g, l2)
 attachToNode(g, l1, l3)
 attachToNode(g, l3, n)
+over(lights, isLight, g)
+over(positions, flatten("position"), lights)
+over(colors, flatten("rgb"), lights)
+over(intensities, plucking("intensity"), lights)
 
-lights      = transduce(isLight, cons, [], g)
-positions   = transduce(flatten("position"), cons, [], lights)
-colors      = transduce(flatten("rgb"), cons, [], lights)
-intensities = transduce(plucking("intensity"), cons, [], lights)
 console.log(positions)
 console.log(colors)
 console.log(intensities)
