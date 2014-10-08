@@ -1,40 +1,45 @@
-var prodash       = require("prodash")
-var async         = require("async")
-var graph         = require("../modules/graph")
-var loaders       = require("../modules/loaders")
-var utils         = require("../modules/gl-utils")
-var random        = require("../modules/random")
-var physics       = require("../modules/physics")
-var lifetime      = require("../modules/lifetime")
-var emitters      = require("../modules/emitters")
-var clock         = require("../modules/clock")
-var camera        = require("../modules/camera")
-var light         = require("../modules/light")
-var vec3          = require("../modules/vec3")
-var Graph         = graph.Graph
-var attachById    = graph.attachById
-var partial       = prodash.functions.partial
-var transduce     = prodash.transducers.transduce
-var Particle      = emitters.Particle
-var Emitter       = emitters.Emitter
-var updateEmitter = emitters.updateEmitter
-var loadShader    = loaders.loadShader
-var updateBuffer  = utils.updateBuffer
-var clearContext  = utils.clearContext
-var LoadedProgram = utils.LoadedProgram
-var randBound     = random.randBound
-var updatePhysics = physics.updatePhysics
-var killTheOld    = lifetime.killTheOld
-var Clock         = clock.Clock
-var updateClock   = clock.updateClock
-var Camera        = camera.Camera
-var updateCamera  = camera.updateCamera
-var PointLight    = light.PointLight
-var setVec3       = vec3.setVec3
-var canvas        = document.getElementById("playground")
-var stats         = document.getElementById("stats")
-var gl            = canvas.getContext("webgl")
-var shaders       = {
+var prodash          = require("prodash")
+var async            = require("async")
+var graph            = require("../modules/graph")
+var loaders          = require("../modules/loaders")
+var utils            = require("../modules/gl-utils")
+var random           = require("../modules/random")
+var physics          = require("../modules/physics")
+var lifetime         = require("../modules/lifetime")
+var emitters         = require("../modules/emitters")
+var clock            = require("../modules/clock")
+var camera           = require("../modules/camera")
+var light            = require("../modules/light")
+var vec3             = require("../modules/vec3")
+var Graph            = graph.Graph
+var attachToRoot     = graph.attachToRoot
+var attachToNode     = graph.attachToNode
+var attachManyToNode = graph.attachManyToNode
+var compose          = prodash.functions.compose
+var partial          = prodash.functions.partial
+var into             = prodash.transducers.into
+var filtering        = prodash.transducers.filtering
+var checking         = prodash.transducers.checking
+var ParticleGroup    = emitters.ParticleGroup
+var Emitter          = emitters.Emitter
+var updateEmitter    = emitters.updateEmitter
+var loadShader       = loaders.loadShader
+var updateBuffer     = utils.updateBuffer
+var clearContext     = utils.clearContext
+var LoadedProgram    = utils.LoadedProgram
+var randBound        = random.randBound
+var updatePhysics    = physics.updatePhysics
+var killTheOld       = lifetime.killTheOld
+var Clock            = clock.Clock
+var updateClock      = clock.updateClock
+var Camera           = camera.Camera
+var updateCamera     = camera.updateCamera
+var PointLight       = light.PointLight
+var setVec3          = vec3.setVec3
+var canvas           = document.getElementById("playground")
+var stats            = document.getElementById("stats")
+var gl               = canvas.getContext("webgl")
+var shaders          = {
   vertex:   "/shaders/01v.glsl",
   fragment: "/shaders/01f.glsl"
 }
@@ -48,8 +53,6 @@ var forEachNode = function (fn, nodeId, world) {
     forEachNode(fn, node.childIds[i], world)
   }
 }
-
-
 
 //(World -> Node) -> World -> Void
 var updateEntities = function (fn, world) {
@@ -104,9 +107,6 @@ function makeRender (gl, world) {
     lP        = new Float32Array(lightPositions)
     lI        = new Float32Array(lightIntensities)
 
-    window.lP = lP
-    window.lC = lC
-    window.lI = lI
     clearContext(gl)
     gl.useProgram(world.programs.particle.program)
     gl.uniform3fv(lp.uniforms["uLightPositions[0]"], lP)
@@ -123,6 +123,14 @@ function makeRender (gl, world) {
   }
 }
 
+var isEmitter   = checking("emitter", true)
+var hasLifespan = filtering(function (e) { 
+  return e.lifespan !== undefined
+})
+var hasPhysics  = filtering(function (e) {
+  return !!e.position && !!e.velocity && !!e.acceleration
+})
+
 async.parallel({
   vertex:   partial(loadShader, "/shaders/01v.glsl"),
   fragment: partial(loadShader, "/shaders/01f.glsl")
@@ -134,41 +142,40 @@ async.parallel({
     clock:    Clock(performance.now()),
     camera:   Camera(0, 0, 2, fov, aspect, 1, 10),
     graph:    Graph(),
+    systems:  {
+      emitters:  updateEmitter,
+      lifespans: killTheOld,
+      physics:   updatePhysics
+    },
+    groups:   {
+      emitters:  [],
+      lifespans: [],
+      physics:   []
+    },
     programs: {
       particle: particleProgram
     }
   }
-  var l1 = PointLight(1, 0, 0)
-  var l2 = PointLight(0, 1, 0)
-  var l3 = PointLight(0, 0, 1)
+  var l1   = PointLight(0, 0, 0)
+  var l2   = PointLight(0, .25, 0)
+  var l3   = PointLight(0, .5, 0)
+  var e1   = Emitter(1000, 10, .002, .1, 0, 0, 0, 0, 1, randBound(-0.2, 0.2))  
+  var e1ps = ParticleGroup(50, 1000)
 
   setVec3(1.0, 0.0, 0.0, l1.rgb)
   setVec3(0.0, 1.0, 0.0, l2.rgb)
   setVec3(0.0, 0.0, 1.0, l3.rgb)
-  attachById(world.graph, world.graph.rootNodeId, l1)
-  attachById(world.graph, world.graph.rootNodeId, l2)
-  attachById(world.graph, world.graph.rootNodeId, l3)
+  attachToRoot(world.graph, l1)
+  attachToRoot(world.graph, l2)
+  attachToRoot(world.graph, l3)
+  attachToRoot(world.graph, e1)
+  attachManyToNode(world.graph, e1, e1ps)
 
-  var spawnAt = function (speed, x, y, dx, dy) {
-    var e = Emitter(1000, 10, speed, .1, x, y, 0, dx, dy, randBound(-0.2, 0.2))  
+  window.world = world
+  into(world.groups.emitters, isEmitter, world.graph)
+  into(world.groups.lifespans, hasLifespan, world.graph)
+  into(world.groups.physics, hasPhysics, world.graph)
 
-    attachById(world.graph, world.graph.rootNodeId, e)
-    for (var j = 0; j < 50; ++j) {
-      attachById(world.graph, e.id, Particle(1000, 0, 0, 0))
-    }
-  }
-
-  var buildEmitters = function (transFn) {
-    var count  = 16
-    var spread = 2
-    var diff   = spread / count
-    var e
-
-    for (var i = -1 * count; i < 1 * count; i+=.02 * count) {
-      spawnAt(.004, transFn(i) * diff, i / count, 1, i / count)
-    }
-  }
-  buildEmitters(Math.sin)
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeRender(gl, world))
 })

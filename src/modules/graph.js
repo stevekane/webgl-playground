@@ -55,15 +55,29 @@ var attachToRoot = curry(function (graph, node) {
   attachById(graph, graph.rootNodeId, node)
 })
 
+var attachManyToNode = curry(function (graph, parentNode, nodes) {
+  for (var i = 0; i < nodes.length; ++i) {
+    attachById(graph, parentNode.id, nodes[i]) 
+  }
+})
+
+var attachManyToRoot = curry(function (graph, nodes) {
+  for (var i = 0; i < nodes.length; ++i) {
+    attachById(graph, graph.rootNodeId, nodes[i])
+  }
+})
+
 Graph.prototype.__reduce = function (redFn, accum, graph) {
   return nodeReduce(redFn, graph.rootNodeId, accum, graph)
 }
 
 Graph.prototype.__empty = function () { return new Graph }
 
-graph.Node         = Node
-graph.Graph        = Graph
-graph.attachById   = attachById
-graph.attachToNode = attachToNode
-graph.attachToRoot = attachToRoot
-module.exports     = graph
+graph.Node             = Node
+graph.Graph            = Graph
+graph.attachById       = attachById
+graph.attachToNode     = attachToNode
+graph.attachToRoot     = attachToRoot
+graph.attachManyToNode = attachManyToNode
+graph.attachManyToRoot = attachManyToRoot
+module.exports         = graph

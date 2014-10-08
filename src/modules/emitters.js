@@ -8,12 +8,12 @@ var curry     = prodash.functions.curry
 var randBound = random.randBound
 var emitters  = {}
 
-var Particle = function (lifespan, px, py, pz) {
+var Particle = function (lifespan) {
   return {
     id:           uuid.v4(),
-    position:     Vec3(px, py, pz),
+    position:     Vec3(0, 0, 0),
     velocity:     Vec3(0, 0, 0),
-    acceleration: Vec3(0, -0.0000015, 0),
+    acceleration: Vec3(0, -0.0000018, 0),
     renderable:   true,
     size:         4.0,
     timeToDie:    0,
@@ -39,6 +39,14 @@ var Emitter = function (lifespan, rate, speed, spread, px, py, pz, dx, dy, dz) {
   }
 }
 
+var ParticleGroup = function (count, lifespan) {
+  var particles = []
+
+  for (var i = 0; i < count; ++i) {
+    particles.push(Particle(lifespan))
+  }    
+  return particles
+}
 
 var scaleAndSpread = function (scale, spread, val) {
   return scale * (val + randBound(-1 * spread, spread))
@@ -58,7 +66,6 @@ var updateEmitter = function (world, e) {
   var time = world.clock.newTime
   var particle 
 
-  if (!e.emitter) return
   if (!e.living)  return
   if (time > e.nextFireTime) {
     particle             = findFirstDead(world.graph, e.childIds)
@@ -75,6 +82,7 @@ var updateEmitter = function (world, e) {
 }
 
 emitters.Particle      = Particle
+emitters.ParticleGroup = ParticleGroup
 emitters.Emitter       = Emitter
 emitters.updateEmitter = updateEmitter
 module.exports         = emitters
