@@ -16,6 +16,11 @@ var setVec3 = function (x, y, z, vec) {
   return vec
 }
 
+var cloneVec3 = function (vec) {
+  return Vec3(vec[0], vec[1], vec[2])
+}
+
 vec3.Vec3      = Vec3
 vec3.setVec3   = setVec3
+vec3.cloneVec3 = cloneVec3
 module.exports = vec3

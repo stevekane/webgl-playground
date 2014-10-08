@@ -1,7 +1,9 @@
 var prodash      = require("prodash")
 var graph        = require("./src/modules/graph")
+var vec3         = require("./src/modules/vec3")
 var Graph        = graph.Graph
 var Node         = graph.Node
+var cloneVec3    = vec3.cloneVec3
 var attachById   = graph.attachById
 var attachToRoot = graph.attachToRoot
 var attachToNode = graph.attachToNode
@@ -19,9 +21,6 @@ var l1 = Node({light: true, position: new Float32Array([1,2,3])})
 var l2 = Node({light: true, position: new Float32Array([4,3,2])})
 var l3 = Node({light: true, position: new Float32Array([1,2,4])})
 
-var cloneVec3 = function (x) { 
-  return new Float32Array([x[0], x[1], x[2]]) 
-}
 var getLights             = checking("light", true)
 var getPositions          = plucking("position")
 var cloning               = mapping(cloneVec3)
