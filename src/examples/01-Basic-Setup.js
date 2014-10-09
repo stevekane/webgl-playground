@@ -18,8 +18,13 @@ var attachManyToNode = graph.attachManyToNode
 var compose          = prodash.functions.compose
 var partial          = prodash.functions.partial
 var into             = prodash.transducers.into
+var transduce        = prodash.transducers.transduce
+var cons             = prodash.transducers.cons
+var sequence         = prodash.transducers.sequence
 var filtering        = prodash.transducers.filtering
 var checking         = prodash.transducers.checking
+var plucking         = prodash.transducers.plucking
+var cat              = prodash.transducers.cat
 var ParticleGroup    = emitters.ParticleGroup
 var Emitter          = emitters.Emitter
 var updateEmitter    = emitters.updateEmitter
@@ -37,12 +42,21 @@ var updateCamera     = camera.updateCamera
 var PointLight       = light.PointLight
 var setVec3          = vec3.setVec3
 var canvas           = document.getElementById("playground")
-var stats            = document.getElementById("stats")
-var gl               = canvas.getContext("webgl")
-var shaders          = {
-  vertex:   "/shaders/01v.glsl",
-  fragment: "/shaders/01f.glsl"
-}
+
+var isEmitter   = checking("emitter", true)
+var isParticle  = checking("particle", true)
+var isLight     = checking("light", true)
+var isLiving    = checking("living", true)
+var hasLifespan = filtering(function (e) { 
+  return e.lifespan !== undefined
+})
+var hasPhysics  = filtering(function (e) {
+  return !!e.position && !!e.velocity && !!e.acceleration
+})
+var getLivingParticles = compose([isLiving, isParticle])
+var getLivingLights    = compose([isLiving, isLight])
+var flattenPositions   = sequence(compose([isLiving, plucking("position"), cat]))
+var flattenSizes       = sequence(compose([isLiving, plucking("size"), cat]))
 
 //(World -> Node) -> String -> World -> Void
 var forEachNode = function (fn, nodeId, world) {
@@ -69,76 +83,69 @@ function makeUpdate (world) {
   }
 }
 
-function makeRender (gl, world) {
-  var lp               = world.programs.particle
-  var rawPositions     = []
-  var lightColors      = []
-  var lightPositions   = []
-  var lightIntensities = []
-  var buildBuffers = function (world, node) {
-    if (node.living && node.renderable) {
-      rawPositions.push(node.position[0]) 
-      rawPositions.push(node.position[1]) 
-      rawPositions.push(node.position[2]) 
-    }
-    if (!!node.light) {
-      lightPositions.push(node.position[0])
-      lightPositions.push(node.position[1])
-      lightPositions.push(node.position[2])
-      lightColors.push(node.rgb[0])
-      lightColors.push(node.rgb[1])
-      lightColors.push(node.rgb[2])
-      lightIntensities.push(node.intensity)
-    }
+function buildLightData (world) {
+  var lights    = world.groups.lights
+  var lightData = {
+    positions:   new Float32Array(lights.length * 3),
+    colors:      new Float32Array(lights.length * 3),
+    intensities: new Float32Array(lights.length)
   }
-  var positions 
-  var lC
-  var lP
-  var lI
+  var light
+  
+  for (var i = 0; i < lights.length; ++i) {
+    light = lights[i]
+    lightData.positions[i*3]   = light.position[0]
+    lightData.positions[i*3+1] = light.position[1]
+    lightData.positions[i*3+2] = light.position[2]
+    lightData.colors[i*3]      = light.rgb[0]
+    lightData.colors[i*3+1]    = light.rgb[1]
+    lightData.colors[i*3+2]    = light.rgb[2]
+    lightData.intensities[i]   = light.intensity
+  }
+  return lightData
+}
 
+function renderParticles (world, lightData) {
+  var gl        = world.gl
+  var view      = world.view
+  var lp        = world.programs.particle
+  var particles = world.groups.particles
+  var positions = new Float32Array(flattenPositions(particles))
+
+  gl.useProgram(lp.program)
+  gl.uniform3fv(lp.uniforms["uLightPositions[0]"], lightData.positions)
+  gl.uniform3fv(lp.uniforms["uLightColors[0]"], lightData.colors)
+  gl.uniform1fv(lp.uniforms["uLightIntensities[0]"], lightData.intensities)
+  gl.uniform4f(lp.uniforms.uColor, 0.0, 0.0, 0.0, 1.0)
+  gl.uniform2f(lp.uniforms.uScreenSize, view.clientWidth, view.clientHeight)
+  gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
+  gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
+  gl.uniform1f(lp.uniforms.uSize, 1.0)
+  updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
+  gl.drawArrays(gl.POINTS, 0, positions.length / 3)
+}
+
+function makeRender (gl, world) {
   return function render () {
-    rawPositions     = []
-    lightColors      = []
-    lightPositions   = []
-    lightIntensities = []
-    updateEntities(buildBuffers, world)
-    positions = new Float32Array(rawPositions)
-    lC        = new Float32Array(lightColors)
-    lP        = new Float32Array(lightPositions)
-    lI        = new Float32Array(lightIntensities)
+    var lightData = buildLightData(world)
 
     clearContext(gl)
-    gl.useProgram(world.programs.particle.program)
-    gl.uniform3fv(lp.uniforms["uLightPositions[0]"], lP)
-    gl.uniform3fv(lp.uniforms["uLightColors[0]"], lC)
-    gl.uniform1fv(lp.uniforms["uLightIntensities[0]"], lI)
-    gl.uniform4f(lp.uniforms.uColor, 0.0, 0.0, 0.0, 1.0)
-    gl.uniform2f(lp.uniforms.uScreenSize, canvas.clientWidth, canvas.clientHeight)
-    gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
-    gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
-    gl.uniform1f(lp.uniforms.uSize, 1.0)
-    updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
-    gl.drawArrays(gl.POINTS, 0, positions.length / 3)
+    renderParticles(world, lightData)
     requestAnimationFrame(render) 
   }
 }
-
-var isEmitter   = checking("emitter", true)
-var hasLifespan = filtering(function (e) { 
-  return e.lifespan !== undefined
-})
-var hasPhysics  = filtering(function (e) {
-  return !!e.position && !!e.velocity && !!e.acceleration
-})
 
 async.parallel({
   vertex:   partial(loadShader, "/shaders/01v.glsl"),
   fragment: partial(loadShader, "/shaders/01f.glsl")
 }, function (err, shaders) {
-  var fov             = Math.PI / 2
-  var aspect          = canvas.clientWidth / canvas.clientHeight
+  var gl              = canvas.getContext("webgl")
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
+  var aspect          = canvas.clientWidth / canvas.clientHeight
+  var fov             = Math.PI / 2
   var world           = {
+    gl:       gl,
+    view:     canvas,
     clock:    Clock(performance.now()),
     camera:   Camera(0, 0, 2, fov, aspect, 1, 10),
     graph:    Graph(),
@@ -150,7 +157,9 @@ async.parallel({
     groups:   {
       emitters:  [],
       lifespans: [],
-      physics:   []
+      physics:   [],
+      lights:    [],
+      particles: []
     },
     programs: {
       particle: particleProgram
@@ -170,11 +179,12 @@ async.parallel({
   attachToRoot(world.graph, l3)
   attachToRoot(world.graph, e1)
   attachManyToNode(world.graph, e1, e1ps)
-
-  window.world = world
+  into(world.groups.lights, isLight, world.graph)
   into(world.groups.emitters, isEmitter, world.graph)
+  into(world.groups.particles, isParticle, world.graph)
   into(world.groups.lifespans, hasLifespan, world.graph)
   into(world.groups.physics, hasPhysics, world.graph)
+  window.world = world
 
   setInterval(makeUpdate(world), 25)
   requestAnimationFrame(makeRender(gl, world))

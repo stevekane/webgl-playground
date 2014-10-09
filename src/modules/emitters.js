@@ -11,6 +11,7 @@ var emitters  = {}
 var Particle = function (lifespan) {
   return {
     id:           uuid.v4(),
+    particle:     true,
     position:     Vec3(0, 0, 0),
     velocity:     Vec3(0, 0, 0),
     acceleration: Vec3(0, -0.0000018, 0),
