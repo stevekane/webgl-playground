@@ -73,6 +73,9 @@ var updateEntities = function (fn, world) {
   forEachNode(fn, world.graph.rootNodeId, world)
 }
 
+//TODO: Should alter the updateEntities calls to be run system calls
+//that leverage the defined systems in our world and also the groups
+//associated w/ them
 function makeUpdate (world) {
   return function update () {
     updateClock(world.clock, performance.now())
