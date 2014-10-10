@@ -1,20 +1,6 @@
 var utils        = require("./gl-utils")
 var updateBuffer = utils.updateBuffer
 
-//here we allocate both the JS array and Float32Array
-//function buildPositions (particles) {
-//  var out = []
-//
-//  for (var i = 0; i < particles.length; ++i) {
-//    if (!!particles[i].living) {
-//      out.push(particles[i].position[0]) 
-//      out.push(particles[i].position[1]) 
-//      out.push(particles[i].position[2]) 
-//    }
-//  }
-//  return new Float32Array(out)
-//}
-
 //here we allocate once and iterate twice
 function buildPositions (particles) {
   var livingCount = 0

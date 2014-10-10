@@ -86,24 +86,17 @@ function makeUpdate (scene) {
   }
 }
 
-function buildLightData (scene) {
-  var lights    = scene.groups.lights
+function buildLightData (lights) {
   var lightData = {
     positions:   new Float32Array(lights.length * 3),
     colors:      new Float32Array(lights.length * 3),
     intensities: new Float32Array(lights.length)
   }
-  var light
   
   for (var i = 0; i < lights.length; ++i) {
-    light = lights[i]
-    lightData.positions[i*3]   = light.position[0]
-    lightData.positions[i*3+1] = light.position[1]
-    lightData.positions[i*3+2] = light.position[2]
-    lightData.colors[i*3]      = light.rgb[0]
-    lightData.colors[i*3+1]    = light.rgb[1]
-    lightData.colors[i*3+2]    = light.rgb[2]
-    lightData.intensities[i]   = light.intensity
+    lightData.positions.set(lights[i].position, i*3)
+    lightData.colors.set(lights[i].rgb, i*3)
+    lightData.intensities[i] = lights[i].intensity
   }
   return lightData
 }
@@ -167,7 +160,7 @@ async.parallel({
   into(scene.groups.particles, isParticle, scene.graph)
   into(scene.groups.lifespans, hasLifespan, scene.graph)
   into(scene.groups.physics, hasPhysics, scene.graph)
-  scene.lightData = buildLightData(scene)
+  scene.lightData = buildLightData(scene.groups.lights)
 
   window.scene = scene
 
