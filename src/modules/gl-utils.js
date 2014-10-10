@@ -5,7 +5,10 @@ var clearContext = function (gl) {
   gl.clear(gl.COLOR_BUFFER_BIT)
 }
 
-var updateBuffer = function (gl, chunkSize, attribute, buffer, data) {
+var updateBuffer = function (gl, program, chunkSize, attrName, data) {
+  var attribute = program.attributes[attrName]
+  var buffer    = program.buffers[attrName]
+
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW)
   gl.enableVertexAttribArray(attribute)

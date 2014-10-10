@@ -38,7 +38,7 @@ function renderParticles (scene) {
   gl.uniformMatrix4fv(lp.uniforms.uView, false, scene.camera.view)
   gl.uniformMatrix4fv(lp.uniforms.uProjection, false, scene.camera.projection)
   gl.uniform1f(lp.uniforms.uSize, 1.0)
-  updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
+  updateBuffer(gl, lp, 3, "aPosition", positions)
   gl.drawArrays(gl.POINTS, 0, positions.length / 3)
 }
 
