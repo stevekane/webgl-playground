@@ -11,6 +11,7 @@ var clock            = require("../modules/clock")
 var camera           = require("../modules/camera")
 var light            = require("../modules/light")
 var vec3             = require("../modules/vec3")
+var renderParticles  = require("../modules/render-particles")
 var Graph            = graph.Graph
 var attachToRoot     = graph.attachToRoot
 var attachToNode     = graph.attachToNode
@@ -29,7 +30,6 @@ var ParticleGroup    = emitters.ParticleGroup
 var Emitter          = emitters.Emitter
 var updateEmitter    = emitters.updateEmitter
 var loadShader       = loaders.loadShader
-var updateBuffer     = utils.updateBuffer
 var clearContext     = utils.clearContext
 var LoadedProgram    = utils.LoadedProgram
 var randBound        = random.randBound
@@ -58,36 +58,36 @@ var getLivingLights    = compose([isLiving, isLight])
 var flattenPositions   = sequence(compose([isLiving, plucking("position"), cat]))
 var flattenSizes       = sequence(compose([isLiving, plucking("size"), cat]))
 
-//(World -> Node) -> String -> World -> Void
-var forEachNode = function (fn, nodeId, world) {
-  var node = world.graph.nodes[nodeId]
+//(Scene -> Node) -> String -> Scene -> Void
+var forEachNode = function (fn, nodeId, scene) {
+  var node = scene.graph.nodes[nodeId]
 
-  fn(world, node)
+  fn(scene, node)
   for (var i = 0; i < node.childIds.length; ++i) {
-    forEachNode(fn, node.childIds[i], world)
+    forEachNode(fn, node.childIds[i], scene)
   }
 }
 
-//(World -> Node) -> World -> Void
-var updateEntities = function (fn, world) {
-  forEachNode(fn, world.graph.rootNodeId, world)
+//(Scene -> Node) -> Scene -> Void
+var updateEntities = function (fn, scene) {
+  forEachNode(fn, scene.graph.rootNodeId, scene)
 }
 
 //TODO: Should alter the updateEntities calls to be run system calls
-//that leverage the defined systems in our world and also the groups
+//that leverage the defined systems in our scene and also the groups
 //associated w/ them
-function makeUpdate (world) {
+function makeUpdate (scene) {
   return function update () {
-    updateClock(world.clock, performance.now())
-    updateCamera(world, world.camera)
-    updateEntities(killTheOld, world)
-    updateEntities(updatePhysics, world)
-    updateEntities(updateEmitter, world)
+    updateClock(scene.clock, performance.now())
+    updateCamera(scene, scene.camera)
+    updateEntities(killTheOld, scene)
+    updateEntities(updatePhysics, scene)
+    updateEntities(updateEmitter, scene)
   }
 }
 
-function buildLightData (world) {
-  var lights    = world.groups.lights
+function buildLightData (scene) {
+  var lights    = scene.groups.lights
   var lightData = {
     positions:   new Float32Array(lights.length * 3),
     colors:      new Float32Array(lights.length * 3),
@@ -108,32 +108,12 @@ function buildLightData (world) {
   return lightData
 }
 
-function renderParticles (world, lightData) {
-  var gl        = world.gl
-  var view      = world.view
-  var lp        = world.programs.particle
-  var particles = world.groups.particles
-  var positions = new Float32Array(flattenPositions(particles))
-
-  gl.useProgram(lp.program)
-  gl.uniform3fv(lp.uniforms["uLightPositions[0]"], lightData.positions)
-  gl.uniform3fv(lp.uniforms["uLightColors[0]"], lightData.colors)
-  gl.uniform1fv(lp.uniforms["uLightIntensities[0]"], lightData.intensities)
-  gl.uniform4f(lp.uniforms.uColor, 0.0, 0.0, 0.0, 1.0)
-  gl.uniform2f(lp.uniforms.uScreenSize, view.clientWidth, view.clientHeight)
-  gl.uniformMatrix4fv(lp.uniforms.uView, false, world.camera.view)
-  gl.uniformMatrix4fv(lp.uniforms.uProjection, false, world.camera.projection)
-  gl.uniform1f(lp.uniforms.uSize, 1.0)
-  updateBuffer(gl, 3, lp.attributes.aPosition, lp.buffers.aPosition, positions)
-  gl.drawArrays(gl.POINTS, 0, positions.length / 3)
-}
-
-function makeRender (gl, world) {
+function makeRender (gl, scene) {
   return function render () {
-    var lightData = buildLightData(world)
+    var lightData = buildLightData(scene)
 
     clearContext(gl)
-    renderParticles(world, lightData)
+    renderParticles(scene)
     requestAnimationFrame(render) 
   }
 }
@@ -144,11 +124,10 @@ async.parallel({
 }, function (err, shaders) {
   var gl              = canvas.getContext("webgl")
   var particleProgram = LoadedProgram(gl, shaders.vertex, shaders.fragment)
-  var aspect          = canvas.clientWidth / canvas.clientHeight
+  var aspect          = gl.canvas.clientWidth / gl.canvas.clientHeight
   var fov             = Math.PI / 2
-  var world           = {
+  var scene           = {
     gl:       gl,
-    view:     canvas,
     clock:    Clock(performance.now()),
     camera:   Camera(0, 0, 2, fov, aspect, 1, 10),
     graph:    Graph(),
@@ -166,7 +145,8 @@ async.parallel({
     },
     programs: {
       particle: particleProgram
-    }
+    },
+    lightData: []
   }
   var l1   = PointLight(0, 0, 0)
   var l2   = PointLight(0, .25, 0)
@@ -177,18 +157,20 @@ async.parallel({
   setVec3(1.0, 0.0, 0.0, l1.rgb)
   setVec3(0.0, 1.0, 0.0, l2.rgb)
   setVec3(0.0, 0.0, 1.0, l3.rgb)
-  attachToRoot(world.graph, l1)
-  attachToRoot(world.graph, l2)
-  attachToRoot(world.graph, l3)
-  attachToRoot(world.graph, e1)
-  attachManyToNode(world.graph, e1, e1ps)
-  into(world.groups.lights, isLight, world.graph)
-  into(world.groups.emitters, isEmitter, world.graph)
-  into(world.groups.particles, isParticle, world.graph)
-  into(world.groups.lifespans, hasLifespan, world.graph)
-  into(world.groups.physics, hasPhysics, world.graph)
-  window.world = world
+  attachToRoot(scene.graph, l1)
+  attachToRoot(scene.graph, l2)
+  attachToRoot(scene.graph, l3)
+  attachToRoot(scene.graph, e1)
+  attachManyToNode(scene.graph, e1, e1ps)
+  into(scene.groups.lights, isLight, scene.graph)
+  into(scene.groups.emitters, isEmitter, scene.graph)
+  into(scene.groups.particles, isParticle, scene.graph)
+  into(scene.groups.lifespans, hasLifespan, scene.graph)
+  into(scene.groups.physics, hasPhysics, scene.graph)
+  scene.lightData = buildLightData(scene)
 
-  setInterval(makeUpdate(world), 25)
-  requestAnimationFrame(makeRender(gl, world))
+  window.scene = scene
+
+  setInterval(makeUpdate(scene), 25)
+  requestAnimationFrame(makeRender(gl, scene))
 })
