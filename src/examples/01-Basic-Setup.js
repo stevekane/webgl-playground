@@ -73,9 +73,6 @@ var updateEntities = function (fn, scene) {
   forEachNode(fn, scene.graph.rootNodeId, scene)
 }
 
-//TODO: Should alter the updateEntities calls to be run system calls
-//that leverage the defined systems in our scene and also the groups
-//associated w/ them
 function makeUpdate (scene) {
   return function update () {
     updateClock(scene.clock, performance.now())
