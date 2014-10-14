@@ -32,6 +32,8 @@
     "node-uuid": "^1.4.1",
     "tape": "^3.0.0",
     "prodash": "0.0.30",
-    "es6-transpiler": "^0.7.17"
+    "es6-transpiler": "^0.7.17",
+    "6to5": "^1.7.17",
+    "6to5-browserify": "0.0.10"
   }
 }
