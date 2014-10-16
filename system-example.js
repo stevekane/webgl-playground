@@ -137,7 +137,7 @@ function isArrayLike (ar) {
 
 //used internally by FlatGraph
 function ArrayPointer (index, length) {
-  if (!(this instanceof ArrayPointer)) return new ArrayPointer(index, val)
+  if (!(this instanceof ArrayPointer)) return new ArrayPointer(index, length)
 
   this.index  = index
   this.length = length
@@ -226,26 +226,22 @@ function PhysicsSystem (flatGraph) {
   }
 }
 
-//simple AABB in 3d space -- avoiding allocation fucking sucks
-function overlaps (size1, pos1, size2, pos2) {
-  let [half1x, half1y, half1z] = size1
-  let [half2x, half2y, half2z] = size2
-  let [pos1x, pos1y, pos1z]    = pos1
-  let [pos2x, pos2y, pos2z]    = pos2
+//simple AABB in 3d space
+function overlaps (p1x, p1y, p1z, s1x, s1y, s1z, p2x, p2y, p2z, s2x, s2y, s2z) {
   //lower bounds
-  let lb1x = pos1x - half1x
-  let lb1y = pos1y - half1y
-  let lb1z = pos1z - half1z
-  let lb2x = pos2x - half2x
-  let lb2y = pos2y - half2y
-  let lb2z = pos2z - half2z
+  let lb1x = p1x - s1x
+  let lb1y = p1y - s1y
+  let lb1z = p1z - s1z
+  let lb2x = p2x - s2x
+  let lb2y = p2y - s2y
+  let lb2z = p2z - s2z
   //upper bounds
-  let ub1x = pos1x + half1x
-  let ub1y = pos1y + half1y
-  let ub1z = pos1z + half1z
-  let ub2x = pos2x + half2x
-  let ub2y = pos2y + half2y
-  let ub2z = pos2z + half2z
+  let ub1x = p1x + s1x
+  let ub1y = p1y + s1y
+  let ub1z = p1z + s1z
+  let ub2x = p2x + s2x
+  let ub2y = p2y + s2y
+  let ub2z = p2z + s2z
 
   return ((lb2x <= ub1x && ub1x <= ub2x) || (lb1x <= ub2x && ub2x <= ub1x)) &&
          ((lb2y <= ub1y && ub1y <= ub2y) || (lb1y <= ub2y && ub2y <= ub1y)) &&
@@ -261,22 +257,82 @@ TODO: doesCollide is technically a boolean which COULD be false....would still g
 probably indicates that the getIndexPointersWith should be more powerful/flexible for writing
 rules
 
+TODO: at the moment, collisions with self are recorded.  probably can skip as minor optimization
+would need to adjust the size of the pairs array accordingly
+
 This is a VERY naive AABB collision system which simply calls a function with the ids
 of the two colliding objects anytime a collision is detected.  This is crappy but proves
 that collision is possible and not insane with the flatgraph structure
+
+The OUTPUT of this system is a little tricky to understand.  An array is pre-allocated and is
+of fixed maximum size.  This maximum size is computed by taking the total number of colliders,
+and squaring it then multiplying by two.  This is because [1,2] and [2,1] will both be recorded
+even though they are "the same collision".  
+
+As a collision is detected, the index for the id of each collider is added to the pairs array
+as a flat tuple.  
+
+for example, if the array is initially 
+let pairs     = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] 
+let pairCount = 0
+and we detect a collision between the object at
+idIndex == 1 and idIndex == 2 
+then we want the following changes to be the result
+pairs     === [1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+pairCount === 1
+
 */
 function CollisionSystem (flatGraph) {
-  let indexPointers = getIndexPointersWith(["position", "size", "doesCollide"], flatGraph)
+  let indexPointers = getIndexPointersWith(["id", "position", "size", "doesCollide"], flatGraph)
+  let posIndeces    = indexPointers.position.indeces
+  let sizeIndeces   = indexPointers.size.indeces
+  let idIndeces     = indexPointers.id.indeces
+  let count         = indexPointers.position.indeces.length
+  let positions     = flatGraph.components.position
+  let sizes         = flatGraph.components.size
+  let ids           = flatGraph.components.id
 
-  this.posIndeces  = indexPointers.position.indeces
-  this.sizeIndeces = indexPointers.size.indeces
-  this.count       = indexPointers.position.indeces.length
-  this.positions   = flatGraph.components.position
-  this.sizes       = flatGraph.components.size
-  this.run         = (dT) => {
-    console.log(indexPointers)
-    for (var i = 0; i < this.count; ++i) {
+  let pairs         = new Uint32Array(count * count * 2) 
+  let pairCount     = 0
+
+  let p1x, p1y, p1z
+  let p2x, p2y, p2z
+  let s1x, s1y, s1z
+  let s2x, s2y, s2z
+  let id1, id2
+
+  this.run = (dT) => {
+    pairCount = 0
+
+    //build collisions
+    for (var i = 0; i < count; ++i) {
+      for (var j = 0; j < count; ++j) {
+        id1  = ids[idIndeces[i]]
+        id2  = ids[idIndeces[j]]
+        p1x  = positions[posIndeces[i]]
+        p1y  = positions[posIndeces[i]+1]
+        p1z  = positions[posIndeces[i]+2]
+        p2x  = positions[posIndeces[j]]
+        p2y  = positions[posIndeces[j]+1]
+        p2z  = positions[posIndeces[j]+2]
+        s1x = sizes[sizeIndeces[i]] 
+        s1y = sizes[sizeIndeces[i]+1] 
+        s1z = sizes[sizeIndeces[i]+2]
+        s2x = sizes[sizeIndeces[j]] 
+        s2y = sizes[sizeIndeces[j]+1] 
+        s2z = sizes[sizeIndeces[j]+2]
+        if (overlaps(p1x, p1y, p1z, s1x, s1y, s1z, p2x, p2y, p2z, s2x, s2y, s2z)) {
+          if (id1 !== id2) {
+            pairs[pairCount*2]   = idIndeces[i]  
+            pairs[pairCount*2+1] = idIndeces[j]  
+            pairCount++
+          }
+        }
+      }
     }
+    
+    //handle collisions
+    console.log(pairs.subarray(0, pairCount * 2))
   }
 }
 
@@ -303,11 +359,7 @@ let fg              = FlatGraph(g)
 var physicsSystem   = new PhysicsSystem(fg)
 var collisionSystem = new CollisionSystem(fg)
 
-console.log(overlaps(b1.size, b1.position, b2.size, b2.position))
-console.log(overlaps(b2.size, b2.position, b3.size, b3.position))
-
 for (var m = 0; m < 1; ++m) {
   physicsSystem.run(.1)
   collisionSystem.run(.1)
-  console.log(fg.components.position[2])
 }
