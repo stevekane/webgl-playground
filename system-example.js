@@ -248,10 +248,6 @@ function overlaps (p1x, p1y, p1z, s1x, s1y, s1z, p2x, p2y, p2z, s2x, s2y, s2z) {
          ((lb2z <= ub1z && ub1z <= ub2z) || (lb1z <= ub2z && ub2z <= ub1z))
 }
 
-function handleCollision (id1, id2) {
-  console.log(id1 + " has collided with " + id2)
-}
-
 /*
 TODO: doesCollide is technically a boolean which COULD be false....would still get picked up here...
 probably indicates that the getIndexPointersWith should be more powerful/flexible for writing
@@ -307,14 +303,14 @@ function CollisionSystem (flatGraph) {
     //build collisions
     for (var i = 0; i < count; ++i) {
       for (var j = 0; j < count; ++j) {
-        id1  = ids[idIndeces[i]]
-        id2  = ids[idIndeces[j]]
-        p1x  = positions[posIndeces[i]]
-        p1y  = positions[posIndeces[i]+1]
-        p1z  = positions[posIndeces[i]+2]
-        p2x  = positions[posIndeces[j]]
-        p2y  = positions[posIndeces[j]+1]
-        p2z  = positions[posIndeces[j]+2]
+        id1 = ids[idIndeces[i]]
+        id2 = ids[idIndeces[j]]
+        p1x = positions[posIndeces[i]]
+        p1y = positions[posIndeces[i]+1]
+        p1z = positions[posIndeces[i]+2]
+        p2x = positions[posIndeces[j]]
+        p2y = positions[posIndeces[j]+1]
+        p2z = positions[posIndeces[j]+2]
         s1x = sizes[sizeIndeces[i]] 
         s1y = sizes[sizeIndeces[i]+1] 
         s1z = sizes[sizeIndeces[i]+2]
