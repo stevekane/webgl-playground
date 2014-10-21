@@ -1,18 +1,5 @@
 var B = require("benchmark")
 
-/*
- * The goal here is to explore the performance tradeoffs when iterating
- * over objects to perform an update.  In particular, we want to know what
- * overhead is associated with the following factors:
- *
- * 1) Size of object
- * 2) Regularity of object's "types"
- * 3) 
- *
- *
- *
- */
-
 function SmallObject () {
   this.x  = 1
   this.y  = 2
