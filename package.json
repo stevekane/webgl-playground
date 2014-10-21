@@ -35,5 +35,8 @@
     "es6-transpiler": "^0.7.17",
     "6to5": "^1.7.17",
     "6to5-browserify": "0.0.10"
+  },
+  "devDependencies": {
+    "benchmark": "^1.0.0"
   }
 }
