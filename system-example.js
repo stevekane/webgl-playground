@@ -228,14 +228,13 @@ function PhysicsSystem (flatGraph) {
 
 //simple AABB in 3d space
 function overlaps (p1x, p1y, p1z, s1x, s1y, s1z, p2x, p2y, p2z, s2x, s2y, s2z) {
-  //lower bounds
   let lb1x = p1x - s1x
   let lb1y = p1y - s1y
   let lb1z = p1z - s1z
   let lb2x = p2x - s2x
   let lb2y = p2y - s2y
   let lb2z = p2z - s2z
-  //upper bounds
+
   let ub1x = p1x + s1x
   let ub1y = p1y + s1y
   let ub1z = p1z + s1z

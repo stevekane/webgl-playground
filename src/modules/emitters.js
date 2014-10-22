@@ -63,6 +63,17 @@ var findFirstDead = function (graph, childIds) {
   return undefined
 }
 
+
+/* Depends on: 
+ *   living      -> Boolean
+ *   position    -> Vec3
+ *   velocity    -> Vec3
+ *   direction   -> Vec3
+ *   spread      -> Num
+ *   speed       -> Num
+ *   allChildIds -> [id]
+ *   childParticles.lifespan -> Num
+ */
 var updateEmitter = function (world, e) {
   var time = world.clock.newTime
   var particle 
