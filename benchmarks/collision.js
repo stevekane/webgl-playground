@@ -85,7 +85,7 @@ function checkQuadCubes (ents) {
     if (overlapAABB3d(x,y,z,sx,sy,sz,750,250,250,250,250,250)) quads[7].push(ent)
   }
 
-  //test each group
+  //test each quad group
   for (var j = 0; j < quads.length; ++j) {
     pairs = pairs.concat(checkAll(quads[j]))
   }
