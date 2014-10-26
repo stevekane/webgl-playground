@@ -50,24 +50,6 @@ function addEntities (es, entities) {
   while (i--) addEntity(es, entities[i])
 }
 
-function query (es, queryFn, tableName) {
-  var nodeCount = es.nodes.length
-  var result    = {
-    indices: [],
-    lengths: [] 
-  }
-  var node
-
-  for (var i = 0; i < nodeCount; ++i) {
-    node = es.nodes[i]
-    if (queryFn(node)) {
-      result.indices.push(node[tableName].index)
-      result.lengths.push(node[tableName].length)
-    }
-  } 
-  return result
-}
-
 /* A Query is allocated up front and then mutated to contain its latest
  * result by calling runQuery and supplying a target Entity Store.  The
  * result is stored on the query object so that all data is pre-allocated
@@ -144,40 +126,10 @@ function runQuery (es, query) {
   else             return runUnboundedQuery(es, query)
 }
 
-function queryMany (es, queryFn, tableNames) {
-  var tableCount = tableNames.length
-  var nodeCount  = es.nodes.length
-  var result     = {
-    indices: {},
-    lengths: {} 
-  }
-  var tableName
-  var node
-
-  for (var i = 0; i < tableCount; ++i) {
-    result.indices[tableNames[i]] = [] 
-    result.lengths[tableNames[i]] = [] 
-  }
-
-  for (var j = 0; j < nodeCount; ++j) {
-    node = es.nodes[j]
-    if (queryFn(node)) {
-      for (var k = 0; k < tableCount; ++k) {
-        tableName = tableNames[k]
-        result.indices[tableName].push(node[tableName].index)
-        result.lengths[tableName].push(node[tableName].length)
-      }
-    }
-  }
-  return result
-}
-
 es.EntityStore  = EntityStore
 es.addEntity    = addEntity
 es.addEntities  = addEntities
 es.addComponent = addComponent
-es.query        = query
-es.queryMany    = queryMany
 es.runQuery     = runQuery
 es.Query        = Query
 module.exports  = es
