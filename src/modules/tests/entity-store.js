@@ -82,18 +82,26 @@ test('Query constructor works as expected', function (t) {
   var es = new EntityStore
   var b1 = new Box(1,1,1,5,5,5)
   var b2 = new Box(2,2,2,5,5,5)
-  var r1 = { name: "Brett Sanders" }
-  var r2 = { name: "Todd Powderstone" }
-  var q  = new Query({
-    fetch: ['physics'],
-    where: function (e) { return !!e.physics },
-    count: 2,
-    range: [1,2]  
+  var r1 = { name: "Brett Sanders", isLiving: true }
+  var r2 = { name: "Todd Powderstone", isLiving: false }
+  var q1 = new Query({
+    fetch:  ['physics'],
+    count:  2,
+    domain: [1,2]
+  })
+  var q2 = new Query({
+    fetch: ['name'],
+    where: ['isLiving', function (p) { return !!p }]
+  })
+  var q3 = new Query({
+    fetch: ['physics', 'size'],
+    where: ['physics', function (p) { return p.position.x > 1 }]
   })
 
   t.plan(1)
   t.true(true)
   addEntities(es, [b1, b2, r1, r2])
-  runQuery(es, q)
-  console.log(q)
+  runQuery(es, q1)
+  runQuery(es, q2)
+  runQuery(es, q3)
 })

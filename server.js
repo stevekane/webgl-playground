@@ -22,4 +22,8 @@ app.get("/benchmarks", function (res, res) {
   res.render("benchmarks");
 })
 
+app.get("/prototypes", function (res, res) {
+  res.render("prototypes");
+})
+
 httpServer.listen(4000, console.log.bind(console, "connected on 4000"));
