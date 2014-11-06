@@ -1,3 +1,5 @@
+'use strict';
+
 var B   = require("benchmark")
 var now = require("performance-now")
 var s   = new B.Suite
@@ -29,29 +31,25 @@ function Blob () {
   }
 }
 
-var count        = 1000000
-var blobs        = []
-var physics      = []
-var flatPhysics  = new Float32Array(count * 9)
-var flatIsLiving = new Uint8Array(count)
-var indices      = []
-var fIndices     = new Uint8Array(count)
+var dT             = .01
+var count          = 64000
+var blobs          = []
+var physics        = []
+var flatPhysics    = new Float32Array(count * 9)
+var flatIsLiving   = new Uint32Array(count)
+var indices        = []
+var fIndices       = new Uint32Array(count)
+var fLivingIndices = new Uint32Array(count)
 var blob 
 
-//set a cursor property sort of like length on fIndices to keep track
-//of the max value we should iterate to
+//set a cursor property sort of like length on an array
 fIndices.cursor = 0
+fLivingIndices.cursor = 0
 
 for (var i = 0; i < count; ++i) {
   blob = new Blob
 
-  if (i % 4 === 0) blob.isLiving = false
-
-  //create array of whole blobs
-  blobs.push(blob)
-
-  //create array of physics objects 
-  physics.push(blob.physics)
+  if (i % 3 === 0) blob.isLiving = false
 
   //store physics props in totally flat float array
   flatPhysics[i*9]   = blob.physics.position.x
@@ -70,40 +68,13 @@ for (var i = 0; i < count; ++i) {
   if (i % 2 === 0) {
     indices.push(i)
     fIndices[fIndices.cursor++] = i
-  }
-}
-
-function iterateBlobs () {
-  var len = indices.length
-  var blob, i
-
-  for (i = 0; i < len; ++i) {
-    blob = blobs[indices[i]]
-
-    if (!blob.isLiving) continue
-    blob.physics.position.x += blob.physics.velocity.x += blob.physics.acceleration.x 
-    blob.physics.position.y += blob.physics.velocity.y += blob.physics.acceleration.y
-    blob.physics.position.z += blob.physics.velocity.z += blob.physics.acceleration.z
-  }
-}
-
-function iteratePhysics () {
-  var len = indices.length
-  var phys, i, j
-
-  for (i = 0; i < len; ++i) {
-    j    = indices[i]
-    phys = physics[j]
-
-    if (!flatIsLiving[j]) continue
-    phys.position.x += phys.velocity.x += phys.acceleration.x
-    phys.position.y += phys.velocity.y += phys.acceleration.y
-    phys.position.z += phys.velocity.z += phys.acceleration.z
+    if (blob.isLiving) fLivingIndices[fLivingIndices.cursor++] = i
   }
 }
 
 function iterateFlatPhysics () {
-  var len = indices.length
+  var len       = indices.length
+  var dTSquared = dT * dT
   var i, j, k
 
   for (i = 0; i < len; ++i) {
@@ -111,14 +82,20 @@ function iterateFlatPhysics () {
     k = j * 9
     
     if (!flatIsLiving[j]) continue
-    flatPhysics[k]   += flatPhysics[k+3] =+ flatPhysics[k+6] 
-    flatPhysics[k+1] += flatPhysics[k+4] =+ flatPhysics[k+7]
-    flatPhysics[k+2] += flatPhysics[k+5] =+ flatPhysics[k+8]
+    flatPhysics[k]   += (flatPhysics[k+3] * dT)
+    flatPhysics[k+1] += (flatPhysics[k+4] * dT)
+    flatPhysics[k+2] += (flatPhysics[k+5] * dT)
+
+    flatPhysics[k+3] += (flatPhysics[k+6] * dTSquared)
+    flatPhysics[k+4] += (flatPhysics[k+7] * dTSquared)
+    flatPhysics[k+5] += (flatPhysics[k+8] * dTSquared)
   }
 }
 
+//here we check the isLiving status and exit early if not alive
 function iterateUintIndices () {
   var len = fIndices.cursor
+  var dTSquared = dT * dT
   var i, j, k
 
   for (i = 0; i < len; ++i) {
@@ -126,52 +103,39 @@ function iterateUintIndices () {
     k = j * 9
     
     if (!flatIsLiving[j]) continue
-    flatPhysics[k]   += flatPhysics[k+3] =+ flatPhysics[k+6] 
-    flatPhysics[k+1] += flatPhysics[k+4] =+ flatPhysics[k+7]
-    flatPhysics[k+2] += flatPhysics[k+5] =+ flatPhysics[k+8]
+    flatPhysics[k]   += (flatPhysics[k+3] * dT)
+    flatPhysics[k+1] += (flatPhysics[k+4] * dT)
+    flatPhysics[k+2] += (flatPhysics[k+5] * dT)
+
+    flatPhysics[k+3] += (flatPhysics[k+6] * dTSquared)
+    flatPhysics[k+4] += (flatPhysics[k+7] * dTSquared)
+    flatPhysics[k+5] += (flatPhysics[k+8] * dTSquared)
   }
 }
 
-function doAllUint () {
-  var len = fIndices.cursor
+//here we update only living objects
+function iterateLiving () {
+  var len = fLivingIndices.cursor
+  var dTSquared = dT * dT
   var i, j, k
 
   for (i = 0; i < len; ++i) {
-    j = fIndices[i]
+    j = fLivingIndices[i]
     k = j * 9
     
-    flatPhysics[k]   += flatPhysics[k+3] =+ flatPhysics[k+6] 
-    flatPhysics[k+1] += flatPhysics[k+4] =+ flatPhysics[k+7]
-    flatPhysics[k+2] += flatPhysics[k+5] =+ flatPhysics[k+8]
+    flatPhysics[k]   += (flatPhysics[k+3] * dT)
+    flatPhysics[k+1] += (flatPhysics[k+4] * dT)
+    flatPhysics[k+2] += (flatPhysics[k+5] * dT)
+
+    flatPhysics[k+3] += (flatPhysics[k+6] * dTSquared)
+    flatPhysics[k+4] += (flatPhysics[k+7] * dTSquared)
+    flatPhysics[k+5] += (flatPhysics[k+8] * dTSquared)
   }
 }
 
-function doAll2x () {
-  var len = fIndices.cursor
-  var i, j1, j2, k1, k2
-
-  for (i = 0; i < len; i+=2) {
-    j1 = fIndices[i]
-    j2 = fIndices[i+1]
-    k1 = j1 * 9
-    k2 = j2 * 9
-    
-    flatPhysics[k1]   += flatPhysics[k1+3] += flatPhysics[k1+6] 
-    flatPhysics[k1+1] += flatPhysics[k1+4] += flatPhysics[k1+7]
-    flatPhysics[k1+2] += flatPhysics[k1+5] += flatPhysics[k1+8]
-
-    flatPhysics[k2]   += flatPhysics[k2+3] += flatPhysics[k2+6] 
-    flatPhysics[k2+1] += flatPhysics[k2+4] += flatPhysics[k2+7]
-    flatPhysics[k2+2] += flatPhysics[k2+5] += flatPhysics[k2+8]
-  }
-}
-
-s.add("whole blob iteration", iterateBlobs)
-s.add("physics indices", iteratePhysics)
 s.add("flat physics", iterateFlatPhysics)
 s.add("uint indices", iterateUintIndices)
-s.add("do all", doAllUint)
-s.add("do all 2x", doAll2x)
+s.add("only living", iterateLiving)
 
 s.on("cycle", function (e) {
   console.log(String(e.target))
@@ -180,13 +144,11 @@ s.on("cycle", function (e) {
 function wrap (fn) {
   var start = now()
   fn()
+  console.log(fn.name)
   console.log(now() - start + " ms")
 }
 
 s.run()
-wrap(iterateBlobs)
-wrap(iteratePhysics)
 wrap(iterateFlatPhysics)
 wrap(iterateUintIndices)
-wrap(doAllUint)
-wrap(doAll2x)
+wrap(iterateLiving)

@@ -5,6 +5,7 @@ var addEntity      = mod.addEntity
 var addEntities    = mod.addEntities
 var Query          = mod.Query
 var runQuery       = mod.runQuery
+var queryActive    = mod.queryActive
 
 function Box (x, y, z, w, h, d) {
   this.physics = {
@@ -24,6 +25,7 @@ function Box (x, y, z, w, h, d) {
     y: h,
     z: d 
   }
+  this.isActive = true
 }
 
 test('EntityStore has nodes and components', function (t) {
@@ -82,8 +84,8 @@ test('Query constructor works as expected', function (t) {
   var es = new EntityStore
   var b1 = new Box(1,1,1,5,5,5)
   var b2 = new Box(2,2,2,5,5,5)
-  var r1 = { name: "Brett Sanders", isLiving: true }
-  var r2 = { name: "Todd Powderstone", isLiving: false }
+  var r1 = { name: "Brett Sanders", isActive: true }
+  var r2 = { name: "Todd Powderstone", isActive: false }
   var q1 = new Query({
     fetch:  ['physics'],
     count:  2,
@@ -91,17 +93,40 @@ test('Query constructor works as expected', function (t) {
   })
   var q2 = new Query({
     fetch: ['name'],
-    where: ['isLiving', function (p) { return !!p }]
+    where: ['isActive', function (p) { return !!p }]
   })
   var q3 = new Query({
     fetch: ['physics', 'size'],
     where: ['physics', function (p) { return p.position.x > 1 }]
   })
 
-  t.plan(1)
-  t.true(true)
   addEntities(es, [b1, b2, r1, r2])
   runQuery(es, q1)
   runQuery(es, q2)
   runQuery(es, q3)
+  t.plan(1)
+  t.same(q1.result.count, 1)
+  t.same(q2.result.count, 1)
+  t.same(q3.result.count, 1)
+})
+
+test('queryActive returns only results where isActive is true', function (t) {
+  var es = new EntityStore
+  var b1 = new Box(1,1,1,5,5,5)
+  var b2 = new Box(2,2,2,5,5,5)
+  var r1 = { name: "Brett Sanders",    isActive: true }
+  var r2 = { name: "Todd Powderstone", isActive: false }
+  var q1 = new Query({
+    fetch:  ['physics'],
+  })
+  var q2 = new Query({
+    fetch:  ['name'],
+  })
+
+  addEntities(es, [b1, b2, r1, r2])
+  queryActive(es, q1)
+  queryActive(es, q2)
+  t.plan(2)
+  t.same(q1.result.count, 2)
+  t.same(q2.result.count, 1)
 })

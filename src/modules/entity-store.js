@@ -1,3 +1,5 @@
+'use strict';
+
 var es = {}
 
 function cons (list, el) {
@@ -57,10 +59,13 @@ function addEntities (es, entities) {
 
 function Query (options) {
   if (!options.fetch) throw new Error("Bad Query!")
+  var maxSize = 10000
+  var indices 
+  var lengths
 
   this.fetch  = options.fetch
-  this.where  = options.where || []
-  this.count  = options.count || null
+  this.where  = options.where  || []
+  this.count  = options.count  || null
   this.domain = options.domain || null
   this.result = {
     count:   0,
@@ -69,8 +74,12 @@ function Query (options) {
   }
 
   for (var i = 0; i < options.fetch.length; ++i) {
-    this.result.indices[options.fetch[i]] = []
-    this.result.lengths[options.fetch[i]] = []
+    indices = new Uint32Array(maxSize)
+    lengths = new Uint32Array(maxSize)
+    indices.len = 0
+    lengths.len = 0
+    this.result.indices[options.fetch[i]] = indices
+    this.result.lengths[options.fetch[i]] = lengths
   }
 }
 
@@ -89,7 +98,6 @@ function where (es, node, whereClauses) {
   var index
   var count
 
-  //escape early if no key defined.  else check the actual value(s)
   for (var i = 0; i < whereClauses.length; i+=2) {
     key = whereClauses[i]
     fn  = whereClauses[i+1]
@@ -108,20 +116,30 @@ function where (es, node, whereClauses) {
 function runBoundedQuery (es, query) {
   var tableName
   var node
+  var indices
+  var lengths
 
   query.result.count = 0
 
-  for (var i = 0; i < query.domain.length; ++i) {
-    node = es.nodes[query.domain[i]]
+  //reset the results
+  for (var i = 0; i < query.fetch.length; ++i) {
+    tableName = query.fetch[i]
+    query.result.indices[tableName].len = 0
+    query.result.lengths[tableName].len = 0
+  }
 
-    if (query.count && query.result.count >= query.count) break
+  for (var j = 0; j < query.domain.length; ++j) {
+    node = es.nodes[query.domain[j]]
+
+    if (query.count && (query.result.count >= query.count)) break
     if (has(node, query.fetch) && where(es, node, query.where)) {
+      query.result.count++
       for (var k = 0; k < query.fetch.length; ++k) {
         tableName = query.fetch[k]
-
-        query.result.count++
-        query.result.indices[tableName].push(node[tableName].index)
-        query.result.lengths[tableName].push(node[tableName].length)
+        indices   = query.result.indices[tableName]
+        lengths   = query.result.lengths[tableName]
+        indices[indices.len++] = node[tableName].index
+        lengths[lengths.len++] = node[tableName].length
       }
     }
   }
@@ -131,25 +149,73 @@ function runBoundedQuery (es, query) {
 function runUnboundedQuery (es, query) {
   var tableName
   var node
+  var indices
+  var lengths
 
   query.result.count = 0
 
-  for (var i = 0; i < es.nodes.length; ++i) {
-    node = es.nodes[i]
+  //reset the results
+  for (var i = 0; i < query.fetch.length; ++i) {
+    tableName = query.fetch[i]
+    query.result.indices[tableName].len = 0
+    query.result.lengths[tableName].len = 0
+  }
+
+  for (var j = 0; j < es.nodes.length; ++j) {
+    node = es.nodes[j]
 
     if (query.count && (query.result.count >= query.count)) break
     if (has(node, query.fetch) && where(es, node, query.where)) {
+      query.result.count++
       for (var k = 0; k < query.fetch.length; ++k) {
         tableName = query.fetch[k]
-
-        query.result.count++
-        query.result.indices[tableName].push(node[tableName].index)
-        query.result.lengths[tableName].push(node[tableName].length)
+        indices   = query.result.indices[tableName]
+        lengths   = query.result.lengths[tableName]
+        indices[indices.len++] = node[tableName].index
+        lengths[lengths.len++] = node[tableName].length
       }
     }
   }
   return query
 }
+
+/* Current idea is to optimize the store's behavior for pooling
+ * by performing atomic updates based on the "isActive" property
+ * which indicates whether an object is waiting in a pool or currently
+ * in the game scene.  
+ *
+ * The idea here is to eat some cost when changing
+ * and entitie's "aliveness" but then be able to improve the performance
+ * of systems which can continue operating on a query that has been
+ * atomically updated by the store to reflect the change in isActive.
+ *
+ * What this means in practice is that we wish to have the store support
+ * functions called "makeActive" and "makeInactive" which accept a store
+ * instance and an entity id.
+ *
+ * The object's flag will be updated for the "isActive" property AND
+ * all stored queries will be manually updated to either add or remove 
+ * this object from their list as necessary.  This is done by running each
+ * queries "has" and "where" clauses over the entity to determine if it
+ * is a member of that query's results.
+ *
+ * If the member is found to satisfy the query, it is removed from the results
+ * on "makeInactive" and added to the results on "makeActive"
+ *
+ * This is a specific optimization that COULD be applied to any possible
+ * change in values within the system.  However, for many values this would just
+ * result in a ton of overhead on all operations while not affecting the
+ * queries.  Thus, we start with this specific optimization as this is a very
+ * common case reflecting our need/desire to use pooling and pre-allocation.
+ *
+ *
+ * We would like to update the store object on every loop.  This update will
+ * flush a list of objects that whose active status has changed and will perform
+ * atomic update operations on all activeQueries.
+ *
+ * updateStore()
+ * runSystems()...
+ */
 
 function runQuery (es, query) {
   if (query.domain) return runBoundedQuery(es, query)
