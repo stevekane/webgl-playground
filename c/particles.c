@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 const int MAX_PARTICLE_COUNT = 10;
+const int MAX_ENTITY_COUNT   = 100000;
+const int MAX_POOL_COUNT     = 20;
 
 struct Vec3 {
   float x;
@@ -15,6 +17,15 @@ struct Particle {
 struct ParticlePool {
   int liveCount;
   struct Particle particles[MAX_PARTICLE_COUNT];
+};
+
+struct Entity () {
+  
+};
+
+struct EntityStore () {
+  struct Entity entities[MAX_ENTITY_COUNT]; 
+  struct ParticlePool *pools[MAX_POOL_COUNT];
 };
 
 void initializePool (struct ParticlePool *pool) {
