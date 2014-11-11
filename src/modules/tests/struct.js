@@ -56,6 +56,25 @@ test("An allocated struct has an index lookup function", function (t) {
 
   person = Person.allocate()
 
+  //The api I would like:
+  //setUint32("age", 45, person)
+  //setFloat32("weight", 32.45, person)
+  //setAscii("name", "burrito johnson", person)
+  //setUint32("address.zipcode", 61821, person)
+  //setUint32("friend_ids.0", 1, person)
+  //setUint32("friend_ids.3", 100, person)
+  //setFloat32("address.randomFloats.0", 100.76, person)
+  //setFloat32("address.randomFloats.4", 200.11, person)
+  //age        = getUint32("age", person)
+  //weight     = getFloat32("weight", person)
+  //name       = getAscii("name", person)
+  //zipcode    = getUint32("address.zipcode", person)
+  //id1        = getUint32("friend_ids.0", person)
+  //id2        = getUint32("friend_ids.3", person)
+  //randFloat1 = getFloat32("address.randomFloats.0", person)
+  //randFloat2 = getFloat32("address.randomFloats.4", person)
+
+  //The api I have...
   person.setUint32(person.lookup("age"), 45)
   person.setFloat32(person.lookup("weight"), 32.45)
   person.setAscii(person.lookup("name"), "burrito johnson")
