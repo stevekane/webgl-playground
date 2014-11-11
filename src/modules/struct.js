@@ -1,21 +1,6 @@
 var util     = require("util")
 var inherits = util.inherits
 
-/* What is a struct?
- *
- * A struct is a chunk of data that is laid out in memory in a near-linear
- * fashion and is intended to be accessed together.  The goal of this module
- * is to allow Javascript developers to lay out arbitrary data on top of 
- * Array Buffers.  Perhaps we will leverage some or all of the DataView
- * construct to read and update data in the buffer.  
- *
- * Structs will support "string", "int", "float", "struct", and "array"
- * methods (for convenience, may dissolve if better solution becomes
- * obvious).  When you call these methods, you are adding to the internal
- * structs data values.
- *
- */
-
 var ASCII_BYTE_SIZE   = 1
 var FLOAT32_BYTE_SIZE = 4
 var INT32_BYTE_SIZE   = 4
@@ -27,8 +12,12 @@ function Field (name, type, byteLength, offset) {
   this.offset     = offset
 }
 
-function StructField (name, type, byteLength, offset) {
-  Field.call(this)
+function StructField (name, type, childStruct, offset) {
+  this.name       = name
+  this.type       = type
+  this.byteLength = childStruct.byteLength
+  this.offset     = offset
+  this.fields     = childStruct.fields
 }
 
 function Struct () {
@@ -62,22 +51,59 @@ Struct.prototype.struct = function (name, childStruct) {
   var offset = this.byteLength
 
   this.byteLength   += childStruct.byteLength 
-  this.fields[name] = childStruct.fields
+  this.fields[name] = new StructField(name, "Struct", childStruct, offset)
 }
 
-/* Extends instance of browser-provided DataView object but also 
- * provides utility functions for performing string-based lookup
- * and for setting and getting string properties stored in the 
- * underlying ArrayBuffer
- */
+//TODO: this smells fishy here....  probably should not be at module level
+//allocate once and re-use
+var tokens = ["", "", "", "", "", "", "", "", "", "", ""]
+
+function parsePath (path) {
+  var pathLength = path.length
+  var tokenCount = tokens.length
+  var tokenIndex = 0
+  var i          = -1
+  var j          = -1
+  var character
+
+  while (++i < tokenCount) {
+    tokens[i] = ""
+  }
+
+  while (++j < pathLength) {
+    character = path[j]
+    if (character !== ".") tokens[tokenIndex] += character
+    else                   tokenIndex += 1
+  }
+  return tokens
+}
+
 function DataViewPlus (struct) {
   var dvPlus = DataView(new ArrayBuffer(struct.byteLength))      
 
   dvPlus.struct = struct
 
   dvPlus.lookup = function (path) {
-    if (struct.fields[path]) return struct.fields[path].offset
-    else                     throw new Error("invalid path " + path)
+    var parts       = parsePath(path)
+    var fields      = struct.fields
+    var totalOffset = 0
+    var partCount   = 0
+    var i           = -1
+    var j           = -1
+    var field
+
+    console.log(parts)
+
+    while (parts[++i]) {
+      partCount += 1 
+    }
+
+    while (++j < partCount) {
+      field        = fields[parts[j]] 
+      totalOffset += field.offset
+      if (field.type === "Struct") fields = field.fields
+    } 
+    return totalOffset
   }
 
   dvPlus.setAscii = function (byteOffset, str) {

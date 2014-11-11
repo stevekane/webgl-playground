@@ -31,6 +31,7 @@ test("An allocated struct has an index lookup function", function (t) {
   var age
   var weight
   var name
+  var zipcode
 
   Address.int32("number", 8)
   Address.string("street", 32)
@@ -45,17 +46,25 @@ test("An allocated struct has an index lookup function", function (t) {
 
   person = Person.allocate()
 
-  t.plan(4)
+  t.plan(6)
   person.setUint32(person.lookup("age"), 45)
   person.setFloat32(person.lookup("weight"), 32.45)
   person.setAscii(person.lookup("name"), "burrito johnson")
-  age    = person.getUint32(person.lookup("age"))
-  weight = person.getFloat32(person.lookup("weight"))
-  name   = person.getAscii(person.lookup("name"))
+  person.setUint32(person.lookup("address.zipcode"), 61821)
+
+  age     = person.getUint32(person.lookup("age"))
+  weight  = person.getFloat32(person.lookup("weight"))
+  name    = person.getAscii(person.lookup("name"))
+  zipcode = person.getUint32(person.lookup("address.zipcode"))
+
   t.same(age, 45)
   t.same(Number(weight.toFixed(2)), 32.45)
   t.same(name, "burrito johnson")
+  t.same(zipcode, 61821)
   t.throws(function () {
     person.lookup("pook")
+  })
+  t.throws(function () {
+    person.lookup("not.there") 
   })
 })
