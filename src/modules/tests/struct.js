@@ -109,3 +109,32 @@ test("An allocated struct has an index lookup function", function (t) {
     person.lookup("not.there") 
   })
 })
+
+test("non trivial looping operation simulation", function (t) {
+  var Vec3 = new Struct()
+    .float32("x")
+    .float32("y")
+    .float32("z")
+  var Physics = new Struct()
+    .struct("position", Vec3)
+    .struct("velocity", Vec3)
+    .struct("acceleration", Vec3)
+  var PhysicsBodies = new Struct()
+    .structArray("bodies", Physics, 3)
+  var physicsBodies = PhysicsBodies.allocate()
+
+  var ptrPrime = physicsBodies.lookup("bodies.0.position.x")
+  var PhysLen  = Physics.byteLength
+
+  //Pointer-y way to get refs to all x positions and update them
+  for (var i = 0; i < 3; ++i) {
+    physicsBodies.setFloat32(ptrPrime + PhysLen * i, 38.5) 
+  }
+
+  t.plan(1)
+  t.true(true)
+
+  console.log(physicsBodies.getFloat32(physicsBodies.lookup("bodies.0.position.x")))
+  console.log(physicsBodies.getFloat32(physicsBodies.lookup("bodies.1.position.x")))
+  console.log(physicsBodies.getFloat32(physicsBodies.lookup("bodies.2.position.x")))
+})

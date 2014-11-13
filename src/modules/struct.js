@@ -91,6 +91,15 @@ Struct.prototype.stringArray = function (name, maxCharSize, count) {
   return this
 }
 
+Struct.prototype.structArray = function (name, Struct, count) {
+  var offset       = this.byteLength
+  var elementField = new StructField(name, Struct, offset)
+
+  this.byteLength   += count * elementField.byteLength
+  this.fields[name] = new ArrayField(name, elementField, count, offset)
+  return this
+}
+
 //allocate once and re-use in parsePath calls
 var tokens = ["", "", "", "", "", "", "", "", "", "", ""]
 
