@@ -131,10 +131,8 @@ test("non trivial looping operation simulation", function (t) {
     physicsBodies.setFloat32(ptrPrime + PhysLen * i, 38.5) 
   }
 
-  t.plan(1)
-  t.true(true)
-
-  console.log(physicsBodies.getFloat32(physicsBodies.lookup("bodies.0.position.x")))
-  console.log(physicsBodies.getFloat32(physicsBodies.lookup("bodies.1.position.x")))
-  console.log(physicsBodies.getFloat32(physicsBodies.lookup("bodies.2.position.x")))
+  t.plan(3)
+  t.true(physicsBodies.getFloat32(physicsBodies.lookup("bodies.0.position.x")))
+  t.true(physicsBodies.getFloat32(physicsBodies.lookup("bodies.1.position.x")))
+  t.true(physicsBodies.getFloat32(physicsBodies.lookup("bodies.2.position.x")))
 })

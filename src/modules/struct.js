@@ -124,7 +124,7 @@ function parsePath (path) {
 }
 
 function DataViewPlus (struct) {
-  var dvPlus = DataView(new ArrayBuffer(struct.byteLength))      
+  var dvPlus = new DataView(new ArrayBuffer(struct.byteLength))      
 
   dvPlus.struct = struct
 
